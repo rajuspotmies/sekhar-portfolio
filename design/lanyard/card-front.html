@@ -1,0 +1,209 @@
+<!doctype html>
+<!--
+  Source for public/lanyard/card-front.jpg — run ./render.sh after editing.
+  Renders Sekhar's pencil-sketch portrait (from photo-user-sketch.jpg)
+  as a die-cut sticker badge on an ID card, matching the lanyard aesthetic.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #fff; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="card" width="1024" height="1440"></canvas>
+<script>
+const CARD = { w: 1024, h: 1440 };
+const NAME = "Sekhar Javvadi";
+const SUBTITLE = "FOUNDER · OPENPLAN AI";
+const OUTLINE = 16; // sticker border in card px
+
+// Image placement on card
+const PHOTO = {
+  scale: 1.24,
+  x: (CARD.w - 934 * 1.24) / 2, // horizontally centred (-67px)
+  y: CARD.h - 1008 * 1.24 + 5   // hoodie anchored solidly at card bottom (~195px)
+};
+
+const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
+
+Promise.all([load("photo-user-sketch.jpg"), load("openplan-logo.svg")]).then(([photo, logo]) => {
+  draw(photo, logo);
+  document.body.dataset.done = "1";
+});
+
+// Extracts a binary mask of the subject from the white background
+function getPersonMask(image) {
+  const w = image.naturalWidth, h = image.naturalHeight;
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const cx = c.getContext("2d");
+  cx.drawImage(image, 0, 0);
+  const imgData = cx.getImageData(0, 0, w, h);
+  const d = imgData.data;
+
+  // Flood fill outer white background from top border and upper sides
+  const bg = new Uint8Array(w * h);
+  const seeds = [];
+  for (let x = 0; x < w; x++) seeds.push(x);
+  for (let y = 0; y < 650; y++) seeds.push(y * w, y * w + w - 1);
+
+  const stack = [];
+  for (const idx of seeds) {
+    if (d[idx * 4] > 230 && d[idx * 4 + 1] > 230 && d[idx * 4 + 2] > 230 && !bg[idx]) {
+      bg[idx] = 1;
+      stack.push(idx);
+    }
+  }
+
+  while (stack.length) {
+    const idx = stack.pop();
+    const x = idx % w, y = (idx / w) | 0;
+    const neighbors = [
+      x > 0 ? idx - 1 : -1,
+      x < w - 1 ? idx + 1 : -1,
+      y > 0 ? idx - w : -1,
+      y < h - 1 ? idx + w : -1
+    ];
+    for (const n of neighbors) {
+      if (n >= 0 && !bg[n]) {
+        // Any light pixel connected to outer border is background
+        if (d[n * 4] > 234 && d[n * 4 + 1] > 234 && d[n * 4 + 2] > 234) {
+          bg[n] = 1;
+          stack.push(n);
+        }
+      }
+    }
+  }
+
+  // Create isolated subject canvas (transparent outside)
+  const cut = document.createElement("canvas");
+  cut.width = w; cut.height = h;
+  const cutCtx = cut.getContext("2d");
+  const cutData = cutCtx.createImageData(w, h);
+  for (let i = 0; i < w * h; i++) {
+    const isBg = bg[i];
+    cutData.data[i * 4]     = d[i * 4];
+    cutData.data[i * 4 + 1] = d[i * 4 + 1];
+    cutData.data[i * 4 + 2] = d[i * 4 + 2];
+    cutData.data[i * 4 + 3] = isBg ? 0 : 255;
+  }
+  cutCtx.putImageData(cutData, 0, 0);
+
+  // Create silhouette mask canvas
+  const mask = document.createElement("canvas");
+  mask.width = w; mask.height = h;
+  const maskCtx = mask.getContext("2d");
+  const maskData = maskCtx.createImageData(w, h);
+  for (let i = 0; i < w * h; i++) {
+    const on = !bg[i];
+    maskData.data[i * 4] = maskData.data[i * 4 + 1] = maskData.data[i * 4 + 2] = 255;
+    maskData.data[i * 4 + 3] = on ? 255 : 0;
+  }
+  maskCtx.putImageData(maskData, 0, 0);
+
+  return { cut, mask };
+}
+
+function onCard(src, blur = 0) {
+  const c = document.createElement("canvas");
+  c.width = CARD.w; c.height = CARD.h;
+  const x = c.getContext("2d");
+  if (blur) x.filter = `blur(${blur}px)`;
+  x.drawImage(src, PHOTO.x, PHOTO.y, src.width * PHOTO.scale, src.height * PHOTO.scale);
+  return c;
+}
+
+function draw(image, brand) {
+  const ctx = document.getElementById("card").getContext("2d");
+  const { cut, mask } = getPersonMask(image);
+
+  const cardMask = onCard(mask, 1.0);
+  const cardCut = onCard(cut, 0);
+
+  // 1. Card background: soft off-white card with delicate radial lighting
+  ctx.fillStyle = "#f6f6f5";
+  ctx.fillRect(0, 0, CARD.w, CARD.h);
+  const v = ctx.createRadialGradient(CARD.w / 2, CARD.h * 0.42, 200, CARD.w / 2, CARD.h * 0.5, CARD.h * 0.85);
+  v.addColorStop(0, "rgba(255,255,255,0.7)");
+  v.addColorStop(1, "rgba(0,0,0,0.04)");
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, CARD.w, CARD.h);
+
+  // 2. Faint OpenPlan AI mark, top left
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.drawImage(brand, 80, 160, 140, 140);
+  ctx.restore();
+
+  // 3. Name & Subtitle, top right
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#222222";
+  ctx.font = "500 36px 'Helvetica Neue', Helvetica, -apple-system, sans-serif";
+  ctx.fillText(NAME, 944, 98);
+  ctx.fillStyle = "#777777";
+  ctx.font = "500 18px Menlo, 'SF Mono', monospace";
+  ctx.letterSpacing = "2.5px";
+  ctx.fillText(SUBTITLE, 944, 130);
+  ctx.letterSpacing = "0px";
+
+  // 4. White sticker outline: expand mask by OUTLINE px with soft drop shadow
+  const outline = document.createElement("canvas");
+  outline.width = CARD.w; outline.height = CARD.h;
+  const ox = outline.getContext("2d");
+  for (let a = 0; a < 360; a += 10) {
+    const r = (a * Math.PI) / 180;
+    ox.drawImage(cardMask, Math.cos(r) * OUTLINE, Math.sin(r) * OUTLINE);
+  }
+  ox.drawImage(cardMask, 0, 0);
+  ox.globalCompositeOperation = "source-in";
+  ox.fillStyle = "#ffffff";
+  ox.fillRect(0, 0, CARD.w, CARD.h);
+
+  // Draw shadow under the sticker
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.13)";
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 7;
+  ctx.drawImage(outline, 0, 0);
+  ctx.restore();
+
+  // Subtle hand-sketched die-cut edge contour
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.filter = "blur(0.5px)";
+  const edge = document.createElement("canvas");
+  edge.width = CARD.w; edge.height = CARD.h;
+  const ex = edge.getContext("2d");
+  ex.drawImage(outline, 0, 0);
+  ex.globalCompositeOperation = "destination-out";
+  for (let a = 0; a < 360; a += 30) {
+    const r = (a * Math.PI) / 180;
+    ex.drawImage(outline, Math.cos(r) * 1.5, Math.sin(r) * 1.5);
+  }
+  ctx.drawImage(edge, 0, 0);
+  ctx.restore();
+
+  // 5. Draw the user's sketch portrait onto the sticker
+  ctx.drawImage(cardCut, 0, 0);
+
+  // 6. Fine paper grain
+  grain(ctx, 5);
+}
+
+function grain(ctx, amount) {
+  const { width: w, height: h } = ctx.canvas;
+  const id = ctx.getImageData(0, 0, w, h);
+  let s = 1;
+  for (let i = 0; i < id.data.length; i += 4) {
+    s = (s * 16807) % 2147483647;
+    const n = ((s / 2147483647) - 0.5) * amount;
+    id.data[i] += n; id.data[i + 1] += n; id.data[i + 2] += n;
+  }
+  ctx.putImageData(id, 0, 0);
+}
+</script>
+</body>
+</html>
