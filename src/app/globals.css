@@ -29,11 +29,140 @@
   --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument-serif);
 }
 
 html {
-  scroll-behavior: smooth;
   scroll-padding-top: 5rem;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+/* ---------- Hero: "between Hardware & Software." around the ID badge ----------
+   The badge's boxes are unchanged from before the redesign. The 3D card's size follows its canvas height
+   (--C) and it hangs centred in the badge column, so the card occupies, measured at rest:
+     top ≈ 0.20·C, bottom ≈ 0.68·C, half-width ≈ 0.17·C.
+   The giant words are placed from those numbers so they sit around the card, never over it (the badge is
+   also stacked above them). */
+.hero {
+  --C: 520px;                          /* canvas height: mobile/tablet box (unchanged) */
+  --F: clamp(56px, 17vw, 88px);        /* giant word size */
+  view-timeline: --hero block;
+}
+.hero-badge { height: 520px; }
+.hero-badge-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--C) * 0.69);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.hero-giant {
+  display: block;
+  font-size: var(--F);
+  line-height: 1;
+  letter-spacing: -0.015em;
+}
+/* Mask for the slide-up reveal. Padding keeps serif overhangs from being clipped. */
+.hero-line {
+  overflow: hidden;
+  padding: 0.04em 0.08em 0.1em;
+  margin: -0.04em -0.08em -0.1em;
+}
+.hero-amp { font-size: calc(var(--F) * 0.6); }
+.hero-words-bottom {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: calc(var(--F) * 0.12);
+  /* Pull "& Software." up into the empty part of the badge box, just under the card's hint. */
+  margin-top: calc(var(--C) * -0.31 + 30px);
+}
+.hero-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--muted);
+}
+.hero-marker { top: 88px; right: 56px; font-size: 64px; }
+/* Smaller below 1280px so it stays clear of the badge's strap. */
+@media (max-width: 1279px) { .hero-marker { font-size: 44px; } }
+.hero-scroll { left: 48px; bottom: 48px; }
+
+@media (min-width: 1024px) {
+  .hero {
+    --badge-h: max(640px, calc(50svh + 199px)); /* the badge column's original height */
+    --C: calc(var(--badge-h) + 96px);           /* its canvas extends 96px below (unchanged) */
+    /* ≈ 11vw at 1440px and capped at 168px, but smaller at 1024–1280px where the column is cramped
+       (92px at 1024px, 132px at 1280px). */
+    --F: clamp(72px, calc(15.6vw - 68px), 168px);
+    /* Content starts far enough right to clear the frame and the scroll indicator. */
+    --edge: max(0px, calc(8rem - max(0px, (100vw - 72rem) / 2) - 1.5rem));
+  }
+  .hero-box {
+    min-height: max(100svh, calc(var(--C) * 0.69 + 28px + var(--F) + 120px));
+  }
+  .hero-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: calc((100% - 2.5rem) / 2.15); /* the old grid's right column: 1fr of 1.15fr + 1fr, 2.5rem gap */
+    height: var(--badge-h);
+  }
+  .hero-edge { margin-left: var(--edge); }
+  /* "Hardware" ends ~1rem behind the card's left edge (it tucks behind the badge), but never starts
+     left of the content edge. Its rendered width in Instrument Serif is ≈ 3.25 × font size. */
+  .hero-words-top {
+    position: absolute;
+    left: max(
+      var(--edge),
+      calc(100% - (100% - 2.5rem) / 4.3 - var(--C) * 0.17 + 1rem - var(--F) * 3.25)
+    );
+    top: calc(var(--C) * 0.2 - var(--F) * 0.2 - 40px);
+  }
+  .hero-identity { max-width: 32rem; }
+  .hero-words-bottom { display: contents; }
+  .hero-amp {
+    position: absolute;
+    right: calc((100% - 2.5rem) / 4.3 + var(--C) * 0.17 + 0.75rem); /* just left of the card */
+    top: calc(var(--C) * 0.68 - var(--F) * 0.6);                     /* bottom-aligned with the card */
+  }
+  .hero-words-bottom .hero-line {
+    position: absolute;
+    right: 0;
+    top: calc(var(--C) * 0.69 + 28px); /* just under the card and its hint */
+  }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .hero-identity { max-width: 28rem; } /* keeps the bio clear of the "&" */
+}
+
+/* Motion: a one-off load reveal and a scroll-linked drift. None of it under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-lead { animation: hero-fade 0.6s ease-out both; }
+  .hero-giant { animation: hero-rise 0.7s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
+  .hero-amp { animation: hero-fade 0.6s ease-out 0.6s both; }
+  /* The identity block only rises; it is never transparent, so the H1 and bio are in the first paint. */
+  .hero-identity { animation: hero-lift 0.6s ease-out 0.8s both; }
+  .hero-scroll-line > span { animation: hero-scroll-drift 2s ease-in-out infinite; }
+
+  @supports (animation-timeline: view()) {
+    .hero-drift-l,
+    .hero-drift-r {
+      animation: hero-drift-l linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+    .hero-drift-r { animation-name: hero-drift-r; }
+  }
+}
+@keyframes hero-fade { from { opacity: 0; } }
+@keyframes hero-rise { from { transform: translateY(100%); } }
+@keyframes hero-lift { from { transform: translateY(12px); } }
+@keyframes hero-drift-l { to { transform: translateX(-6vw); } }
+@keyframes hero-drift-r { to { transform: translateX(6vw); } }
+@keyframes hero-scroll-drift {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(200%); }
 }
 
 body {

@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Section from "@/components/Section";
 import CurrentYear from "@/components/CurrentYear";
-import Lanyard from "@/components/ui/Lanyard";
+import Hero from "@/components/Hero";
 import OpenPlanLogo from "@/components/OpenPlanLogo";
 import FooterWordmark from "@/components/FooterWordmark";
 import FounderMat from "@/components/FounderMat";
@@ -10,8 +10,6 @@ import {
   capabilities,
   journey,
   profile,
-  proofNote,
-  proofPoints,
   storyChapters,
   storyIntro,
   thinking,
@@ -30,66 +28,10 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <main id="top" className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6">
-        {/* Hero */}
-        <section className="grid min-h-svh items-center gap-6 pb-12 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
-          {/* The card hangs from the top edge of this column, right under the navbar. On desktop the
-              canvas is much wider (and a bit taller) than the column, centred on it, so the swinging card
-              is never clipped; the text and stats sit above it (z-10) and stay clickable. */}
-          <div className="relative h-[520px] self-stretch lg:col-start-2 lg:row-start-1 lg:h-auto lg:min-h-[640px]">
-            <div className="absolute inset-0 lg:inset-auto lg:top-0 lg:-bottom-24 lg:left-1/2 lg:w-[1200px] lg:-translate-x-1/2">
-              <Lanyard
-                frontImage="/lanyard/card-front.jpg"
-                backImage="/lanyard/card-back.svg"
-                strapImage="/lanyard/strap.svg"
-                finish="glossy"
-                metal="silver"
-                size={0.48}
-                strapLength={0.23}
-              />
-            </div>
-            <p className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 font-mono text-xs text-muted">
-              Drag it · click to flip
-            </p>
-          </div>
-          <div className="relative z-10 lg:col-start-1 lg:row-start-1 lg:pt-12">
-            <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-border px-3 py-1 font-mono text-xs text-muted">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Building
-              <OpenPlanLogo className="h-3.5 w-3.5 text-foreground" />
-              OpenPlan AI
-            </p>
-            <h1 className="text-5xl font-semibold tracking-tighter text-balance sm:text-7xl">
-              {profile.name}
-              <span className="text-accent">.</span>
-            </h1>
-            <p className="mt-4 font-mono text-sm uppercase tracking-[0.2em] text-accent">{profile.headline}</p>
-            <p className="mt-6 text-2xl font-medium tracking-tight sm:text-3xl">{profile.tagline}</p>
-            <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted">{profile.intro}</p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <a href="#openplan" className={primaryBtn}>
-                Explore OpenPlan AI
-              </a>
-              <a href="#about" className={secondaryBtn}>
-                Read my founder story
-              </a>
-            </div>
-          </div>
+      <main id="top" className="w-full flex-1">
+        <Hero />
 
-          <div className="relative z-10 lg:col-span-2 lg:row-start-2">
-            <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4">
-              {proofPoints.map((p) => (
-                <div key={p.label} className="bg-background p-5">
-                  <dt className="sr-only">{p.label}</dt>
-                  <dd className="text-3xl font-semibold tracking-tight">{p.value}</dd>
-                  <dd className="mt-1 text-sm text-muted">{p.label}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="mt-3 text-xs text-muted">{proofNote}</p>
-          </div>
-        </section>
-
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         {/* About */}
         <Section id="about" index="01" eyebrow="Founder story" title="I build technology by understanding how people actually work.">
           <p className="mb-10 max-w-3xl text-lg leading-relaxed text-muted">{storyIntro}</p>
@@ -296,6 +238,7 @@ export default function Home() {
             ))}
           </div>
         </Section>
+        </div>
       </main>
 
       <footer className="border-t border-border">
