@@ -9,6 +9,25 @@
   --card: #ffffff;
   --border: #e7e5e4;
   --accent: #4f46e5;
+  /* Glass material (controls only: nav, sheet, secondary CTA, badge hint, toggle) */
+  --glass-bg: rgba(255, 255, 255, 0.58);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-hairline: rgba(0, 0, 0, 0.06);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --glass-blur: blur(20px) saturate(180%);
+  /* Motion */
+  --ease-std: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: var(--ease-std);
+}
+/* Spring with a slight overshoot (peaks ≈ 1.03), where linear() easing is supported. */
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: linear(
+      0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%,
+      1.032 22.3%, 1.03 25.5%, 1.012 31.5%, 0.999 38.9%, 0.998 45%, 1
+    );
+  }
 }
 
 .dark {
@@ -18,6 +37,44 @@
   --card: #1c1917;
   --border: #292524;
   --accent: #818cf8;
+  --glass-bg: rgba(28, 28, 30, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-hairline: rgba(0, 0, 0, 0.4);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ---------- Glass (controls only, never on content blocks) ---------- */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline), var(--glass-shadow);
+}
+@media (max-width: 767px) {
+  :root { --glass-blur: blur(12px) saturate(180%); } /* lighter on phones for scroll/INP */
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: color-mix(in srgb, var(--background) 94%, transparent); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass { background: var(--background); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  .glass {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: var(--foreground);
+  }
+}
+
+/* Buttons and pills: a small press response. Transform only; off under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .press { transition: transform 200ms var(--ease-std), opacity 200ms var(--ease-std); }
+  .press:hover { transform: scale(1.02); }
+  .press:active { transform: scale(0.97); }
 }
 
 @theme inline {
@@ -39,118 +96,141 @@ html {
   html { scroll-behavior: smooth; }
 }
 
-/* ---------- Hero: "between Hardware & Software." around the ID badge ----------
-   The badge's boxes are unchanged from before the redesign. The 3D card's size follows its canvas height
-   (--C) and it hangs centred in the badge column, so the card occupies, measured at rest:
-     top ≈ 0.20·C, bottom ≈ 0.68·C, half-width ≈ 0.17·C.
-   The giant words are placed from those numbers so they sit around the card, never over it (the badge is
-   also stacked above them). */
+/* ---------- Hero: text column + hanging ID badge ----------
+   The 3D card's size follows its canvas height C, and it hangs centred in the canvas. With the badge's
+   props (size 0.48, strapLength 0.55, HeroBadge.tsx) the resting card occupies, measured:
+     top ≈ 0.30·C, bottom ≈ 0.78·C, height H = 0.48·C, half-width ≈ 0.354·H.
+   So everything is expressed in --H (the card height on screen) and C = H / 0.48. */
 .hero {
-  --C: 520px;                          /* canvas height: mobile/tablet box (unchanged) */
-  --F: clamp(56px, 17vw, 88px);        /* giant word size */
+  --H: 250px;                    /* mobile / tablet card height */
+  --C: calc(var(--H) / 0.48);    /* canvas height */
+  --F: clamp(56px, 15vw, 88px);  /* giant statement size */
   view-timeline: --hero block;
+  view-timeline-inset: 0; /* ignore html scroll-padding, or the drift starts before any scroll */
 }
-.hero-badge { height: 520px; }
+.hero-box { padding: 6rem 0 3rem; }
+
+/* Below 1024px: the badge sits under the text, in a box just tall enough for the card + hint. */
+.hero-badge {
+  position: relative;
+  height: calc(var(--C) * 0.78 + 52px);
+  margin-top: 0.5rem;
+}
+.hero-badge-stage {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(100vw, 640px);
+  height: var(--C);
+  transform: translateX(-50%);
+  /* The strap fades in from above, so it reads as hanging from off-frame, not cut off. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%);
+  mask-image: linear-gradient(to bottom, transparent, #000 25%);
+}
+.hero-badge-still { top: 0; }
 .hero-badge-hint {
   position: absolute;
   left: 50%;
-  top: calc(var(--C) * 0.69);
+  top: calc(var(--C) * 0.78 + 14px);
   transform: translateX(-50%);
   white-space: nowrap;
+  /* Glass pill (the hint's element lives in HeroBadge.tsx; only its look is set here) */
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline), var(--glass-shadow);
 }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .hero-badge-hint { background: var(--background); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (min-width: 640px) {
+  .hero { --H: 290px; }
+}
+
+/* The giant statement words: each line rises inside its own mask. Padding keeps serif overhangs unclipped. */
 .hero-giant {
   display: block;
   font-size: var(--F);
-  line-height: 1;
+  line-height: 0.95;
   letter-spacing: -0.015em;
+  white-space: nowrap;
 }
-/* Mask for the slide-up reveal. Padding keeps serif overhangs from being clipped. */
 .hero-line {
   overflow: hidden;
   padding: 0.04em 0.08em 0.1em;
   margin: -0.04em -0.08em -0.1em;
 }
-.hero-amp { font-size: calc(var(--F) * 0.6); }
-.hero-words-bottom {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: calc(var(--F) * 0.12);
-  /* Pull "& Software." up into the empty part of the badge box, just under the card's hint. */
-  margin-top: calc(var(--C) * -0.31 + 30px);
-}
+.hero-amp { display: inline-block; font-size: 0.6em; margin-right: 0.04em; }
 .hero-outline {
   color: transparent;
   -webkit-text-stroke: 1px var(--muted);
 }
 .hero-marker { top: 88px; right: 56px; font-size: 64px; }
-/* Smaller below 1280px so it stays clear of the badge's strap. */
-@media (max-width: 1279px) { .hero-marker { font-size: 44px; } }
-.hero-scroll { left: 48px; bottom: 48px; }
+@media (max-width: 1439px) { .hero-marker { font-size: 44px; } }
 
 @media (min-width: 1024px) {
   .hero {
-    --badge-h: max(640px, calc(50svh + 199px)); /* the badge column's original height */
-    --C: calc(var(--badge-h) + 96px);           /* its canvas extends 96px below (unchanged) */
-    /* ≈ 11vw at 1440px and capped at 168px, but smaller at 1024–1280px where the column is cramped
-       (92px at 1024px, 132px at 1280px). */
-    --F: clamp(72px, calc(15.6vw - 68px), 168px);
-    /* Content starts far enough right to clear the frame and the scroll indicator. */
-    --edge: max(0px, calc(8rem - max(0px, (100vw - 72rem) / 2) - 1.5rem));
+    /* Card height on screen: ~40% of the viewport, never tiny, never oversized. */
+    --H: clamp(330px, 40svh, 450px);
+    /* Giant words: "& Software." renders ≈ 4.05 × the font size wide, so fill the text column with it,
+       but shrink on short screens so the whole left column still fits the first viewport. */
+    --F: clamp(
+      72px,
+      min(calc((min(100vw, 72rem) - 5.5rem) * 0.595 / 4.05), calc((100svh - 500px) / 2)),
+      156px
+    );
   }
   .hero-box {
-    min-height: max(100svh, calc(var(--C) * 0.69 + 28px + var(--F) + 120px));
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr); /* text ≈ 55–60% of the content width */
+    column-gap: 2.5rem;
+    padding: 0 0 2.5rem;
   }
-  .hero-badge {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: calc((100% - 2.5rem) / 2.15); /* the old grid's right column: 1fr of 1.15fr + 1fr, 2.5rem gap */
-    height: var(--badge-h);
+  /* The text column spans 0 → 2H from the page top and centres its content there, so its middle sits
+     level with the card's middle (≈ 1.0·H); the top padding keeps it clear of the fixed nav. */
+  .hero-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: calc(var(--H) * 2);
+    padding-top: 88px;
   }
-  .hero-edge { margin-left: var(--edge); }
-  /* "Hardware" ends ~1rem behind the card's left edge (it tucks behind the badge), but never starts
-     left of the content edge. Its rendered width in Instrument Serif is ≈ 3.25 × font size. */
-  .hero-words-top {
-    position: absolute;
-    left: max(
-      var(--edge),
-      calc(100% - (100% - 2.5rem) / 4.3 - var(--C) * 0.17 + 1rem - var(--F) * 3.25)
+  /* The badge's grid cell is only a placeholder; its canvas is placed against the whole content box. */
+  .hero-badge { position: static; height: auto; margin: 0; }
+  .hero-badge-stage {
+    -webkit-mask-image: none;
+    mask-image: none;
+    width: 1200px;     /* wide, so the card can swing and be dragged without hitting a canvas edge */
+    /* Card centre x: the right column's centre, but never so far left that the strap touches the nav
+       pill (screen centre + ~320px), and never so far right that the card leaves the content box. */
+    left: min(
+      calc(100% - var(--H) * 0.354 - 8px),
+      max(calc(100% - (100% - 2.5rem) * 0.2024), calc(50% + 320px))
     );
-    top: calc(var(--C) * 0.2 - var(--F) * 0.2 - 40px);
-  }
-  .hero-identity { max-width: 32rem; }
-  .hero-words-bottom { display: contents; }
-  .hero-amp {
-    position: absolute;
-    right: calc((100% - 2.5rem) / 4.3 + var(--C) * 0.17 + 0.75rem); /* just left of the card */
-    top: calc(var(--C) * 0.68 - var(--F) * 0.6);                     /* bottom-aligned with the card */
-  }
-  .hero-words-bottom .hero-line {
-    position: absolute;
-    right: 0;
-    top: calc(var(--C) * 0.69 + 28px); /* just under the card and its hint */
   }
 }
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .hero-identity { max-width: 28rem; } /* keeps the bio clear of the "&" */
+@media (min-width: 1024px) and (max-height: 760px) {
+  .hero-copy { padding-top: 76px; }
 }
 
 /* Motion: a one-off load reveal and a scroll-linked drift. None of it under reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
   .hero-lead { animation: hero-fade 0.6s ease-out both; }
-  .hero-giant { animation: hero-rise 0.7s cubic-bezier(0.2, 0.7, 0.1, 1) both; }
+  .hero-giant { animation: hero-rise 0.7s var(--ease-spring) both; }
   .hero-amp { animation: hero-fade 0.6s ease-out 0.6s both; }
   /* The identity block only rises; it is never transparent, so the H1 and bio are in the first paint. */
-  .hero-identity { animation: hero-lift 0.6s ease-out 0.8s both; }
-  .hero-scroll-line > span { animation: hero-scroll-drift 2s ease-in-out infinite; }
+  .hero-identity { animation: hero-lift 0.5s var(--ease-spring) 0.8s both; }
 
   @supports (animation-timeline: view()) {
     .hero-drift-l,
     .hero-drift-r {
-      animation: hero-drift-l linear both;
+      animation: hero-drift-l var(--ease-spring) both;
       animation-timeline: --hero;
-      animation-range: exit 0% exit 100%;
+      animation-range: exit-crossing 0% exit-crossing 100%; /* from the hero top leaving the viewport */
     }
     .hero-drift-r { animation-name: hero-drift-r; }
   }
@@ -160,10 +240,6 @@ html {
 @keyframes hero-lift { from { transform: translateY(12px); } }
 @keyframes hero-drift-l { to { transform: translateX(-6vw); } }
 @keyframes hero-drift-r { to { transform: translateX(6vw); } }
-@keyframes hero-scroll-drift {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(200%); }
-}
 
 body {
   /* The hero's lanyard canvas extends past the content column; never let it cause sideways scroll. */

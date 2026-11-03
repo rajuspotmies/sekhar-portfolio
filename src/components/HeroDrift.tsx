@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Fallback for browsers without CSS scroll-driven animations (`animation-timeline: view()`).
- * Mirrors the CSS: while the hero scrolls out (its exit range), "Hardware" drifts left and "Software."
+ * Mirrors the CSS: while the hero scrolls out (its exit-crossing range), "Hardware" drifts left and "Software."
  * drifts right by up to 6vw. Writes only `transform`. Native scrolling; nothing is hijacked.
  */
 export default function HeroDrift({ heroId }: { heroId: string }) {
@@ -19,10 +19,9 @@ export default function HeroDrift({ heroId }: { heroId: string }) {
     let raf = 0;
     const update = () => {
       raf = 0;
-      const { bottom } = hero.getBoundingClientRect();
-      const vh = window.innerHeight;
-      // Exit range: from the hero's bottom edge at the viewport bottom (0) to it at the viewport top (1).
-      const p = Math.min(1, Math.max(0, (vh - bottom) / vh));
+      const { top, height } = hero.getBoundingClientRect();
+      // Exit-crossing range: from the hero's top at the viewport top (0) to its bottom there (1).
+      const p = Math.min(1, Math.max(0, -top / Math.max(1, height)));
       const x = p * 6;
       left.forEach((el) => (el.style.transform = `translate3d(${-x}vw,0,0)`));
       right.forEach((el) => (el.style.transform = `translate3d(${x}vw,0,0)`));

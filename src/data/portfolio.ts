@@ -63,15 +63,15 @@ export const hero = {
   marker: "2019", // drawn as "✳2019" in outline text; decorative
   name: "Sekhar Javvadi", // the H1; the indigo full stop is added by the component
   role: "Founder & Product Builder",
-  bio: "I started out building circuits and PCBs, spent the years since 2019 shipping software, and now I'm building OpenPlan AI for teams that make physical products.",
+  bio: "Founder based in Bengaluru. Hardware first, software since 2019, now building OpenPlan AI for teams that make physical products.",
   ctas: {
     primary: { label: "Explore OpenPlan AI", href: "#openplan" },
     secondary: { label: "Get in touch", href: "#contact" },
   },
   trail: [
-    { label: "Spotmies · 2019", href: "#spotmies" },
-    { label: "Reaidy.io", href: "#reaidy" },
-    { label: "OpenPlan AI · now", href: "#openplan" },
+    { label: "Co-founded Spotmies · 2019", href: "#spotmies" },
+    { label: "Built Reaidy.io", href: "#reaidy" },
+    { label: "Now building OpenPlan AI", href: "#openplan" },
   ],
   badgeHint: "Drag it · click to flip",
   badgeAlt: "Sekhar Javvadi's ID badge: Founder, OpenPlan AI",

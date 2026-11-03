@@ -7,8 +7,7 @@ import type { LanyardProps } from "@/components/ui/Lanyard";
 // already has them (no blank card while they download).
 const TEXTURES = ["/lanyard/card-front.jpg", "/lanyard/card-back.svg", "/lanyard/strap.svg"];
 
-// The 3D badge, configured exactly as before the redesign. The only difference: `intro` is off, because
-// the static still has already shown the card hanging, so it must not swing in from the side.
+// The 3D badge, configured exactly as before the redesign (including its swing-in intro).
 const LANYARD_PROPS: LanyardProps = {
   frontImage: "/lanyard/card-front.jpg",
   backImage: "/lanyard/card-back.svg",
@@ -16,8 +15,9 @@ const LANYARD_PROPS: LanyardProps = {
   finish: "glossy",
   metal: "silver",
   size: 0.48,
-  strapLength: 0.23,
-  intro: false,
+  // Card top at ≈ 0.30·C (C = canvas height). globals.css (.hero) depends on these two numbers.
+  strapLength: 0.55,
+  intro: true,
 };
 
 function supportsWebGL() {
@@ -58,16 +58,20 @@ function whenIdle(run: () => void) {
 
 /**
  * The hero's ID badge. Wrapper and canvas boxes are the same as before the redesign (the card's size is
- * derived from the canvas height, so these boxes must not change). A static still of the resting badge
- * fills the box on first paint; the live 3D badge replaces it once loaded. With reduced motion, or
- * without WebGL, the still stays.
+ * derived from the canvas height, so these boxes must not change). The box is reserved on first paint;
+ * the live 3D badge loads after the page and swings in with its original intro. With reduced motion, or
+ * without WebGL, a static still of the resting badge fills the box instead.
  */
 export default function HeroBadge({ alt, hint, className = "" }: { alt: string; hint: string; className?: string }) {
   const [Live, setLive] = useState<ComponentType<LanyardProps> | null>(null);
   const [revealed, setRevealed] = useState(false);
+  const [still, setStill] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !supportsWebGL()) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !supportsWebGL()) {
+      setStill(true); // eslint-disable-line react-hooks/set-state-in-effect -- client-only capability check
+      return;
+    }
     let cancelled = false;
     const cancelIdle = whenIdle(async () => {
       const [mod] = await Promise.all([import("@/components/ui/Lanyard"), ...TEXTURES.map(warm)]);
@@ -88,30 +92,32 @@ export default function HeroBadge({ alt, hint, className = "" }: { alt: string; 
 
   return (
     <div className={`hero-badge ${className}`}>
-      <div className="absolute inset-0 lg:inset-auto lg:top-0 lg:-bottom-24 lg:left-1/2 lg:w-[1200px] lg:-translate-x-1/2">
-        {/* Still: a capture of the live badge at rest. The 3D card scales with the canvas height and is
-            centred horizontally, so a full-height, centred image lines up with it at every size. */}
-        {/* eslint-disable-next-line @next/next/no-img-element -- pre-optimised WebP with its own srcset */}
-        <img
-          src="/lanyard/badge-still-1x.webp"
-          srcSet="/lanyard/badge-still-1x.webp 1x, /lanyard/badge-still.webp 2x"
-          width={447}
-          height={745}
-          alt={alt}
-          fetchPriority="high"
-          decoding="async"
-          className={`pointer-events-none absolute top-0 left-1/2 h-full w-auto max-w-none -translate-x-1/2 select-none transition-opacity duration-300 ${
-            revealed ? "opacity-0" : ""
-          }`}
-          draggable={false}
-        />
+      {/* The canvas box (position and size set by .hero-badge-stage in globals.css). */}
+      <div className="hero-badge-stage">
+        {/* Still (reduced motion / no WebGL only): a capture of the live badge at rest. The 3D card scales
+            with the canvas height and is centred horizontally, so a full-height, centred image lines up. */}
+        {still && (
+          // eslint-disable-next-line @next/next/no-img-element -- pre-optimised WebP with its own srcset
+          <img
+            src="/lanyard/badge-still-1x.webp"
+            srcSet="/lanyard/badge-still-1x.webp 1x, /lanyard/badge-still.webp 2x"
+            width={447}
+            height={745}
+            alt={alt}
+            decoding="async"
+            className="hero-badge-still pointer-events-none absolute left-1/2 h-full w-auto max-w-none -translate-x-1/2 select-none"
+            draggable={false}
+          />
+        )}
         {Live && (
           <div className={`absolute inset-0 transition-opacity duration-300 ${revealed ? "opacity-100" : "opacity-0"}`}>
             <Live {...LANYARD_PROPS} />
           </div>
         )}
+        {Live && <p className="hero-badge-hint pointer-events-none font-mono text-xs text-muted">{hint}</p>}
       </div>
-      {Live && <p className="hero-badge-hint pointer-events-none font-mono text-xs text-muted">{hint}</p>}
+      {/* Screen readers get the badge description whether the still or the live badge is showing. */}
+      {!still && <span className="sr-only">{alt}</span>}
     </div>
   );
 }
