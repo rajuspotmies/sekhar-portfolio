@@ -1,30 +1,61 @@
 // All site copy and numbers live in this file. Components read from it; no copy is duplicated elsewhere.
 // Sources: docs/sekharjavvadi-redesign-brief.md and docs/hero-footer-addendum.md (the addendum wins on
-// the hero and footer). Anything marked "[TODO: …]" must stay visible until the founder supplies it.
-// Never replace a TODO with a guess.
+// the hero and footer).
+//
+// UNFILLED VALUES ARE `null`. Components hide a null field (or its whole line). No placeholder text may ever
+// render. Never replace a null with a guess; the founder fills them in. See `hiddenUntilFilled` below.
+
+/** Joins the non-null parts with " · "; null when nothing is left (so the line is hidden). */
+const meta = (...parts: (string | null)[]): string | null => parts.filter(Boolean).join(" · ") || null;
+
+// Founder values still to come (null = hidden on the site).
+const spotmiesCofounders: string | null = null; // e.g. "Satish, Hemanth and Naveen" (needs their OK)
+const spotmiesEndYear: string | null = null; // "present" or the year it ended
+const reaidyTitle: string | null = null; // e.g. "Co-founder & CTO"
+const reaidyYears: string | null = null; // "start year – end year"
+
+/** Every field currently hidden because it's null (for the founder's fill-in list). */
+export const hiddenUntilFilled = [
+  "Spotmies co-founder names (Story chapter + Ventures)",
+  "Spotmies end year (Ventures meta shows just 2019)",
+  "Spotmies 'as of' date for the numbers",
+  "Spotmies AU Incubation / A Hub line",
+  "Spotmies selected work: my role on CypherB, Indie Skull Syndicate, Nandikrushi (not rendered)",
+  "Reaidy title and years (whole meta line hidden)",
+  "Reaidy 'as of' date for the numbers",
+  "Reaidy 'why it stopped' line",
+  "OpenPlan product screenshot / video (not rendered)",
+];
 
 /* ============================================================================================
    Site-wide
    ============================================================================================ */
 
+export type Social = { label: string; href: string };
+
+const linkedin: Social = { label: "LinkedIn", href: "https://www.linkedin.com/in/sekhar-javvadi" };
+const x: Social = { label: "X", href: "https://x.com/sekharjv" };
+const github: Social = { label: "GitHub", href: "https://github.com/sekharjavvadi" };
+const instagram: Social = { label: "Instagram", href: "https://www.instagram.com/sekharjavvadi/" };
+
 export const site = {
   name: "Sekhar Javvadi",
-  location: "Visakhapatnam, India",
+  location: "Bengaluru, India",
   url: "https://www.sekharjavvadi.com/",
-  email: "[TODO: email]",
-  socials: [
-    // [TODO: confirm current URLs: these are the bare placeholders the current site uses]
-    { label: "LinkedIn", href: "https://www.linkedin.com/" },
-    { label: "X", href: "https://x.com/" },
-    { label: "GitHub", href: "https://github.com/" },
-  ],
+  email: "sekhar@openplanai.com",
+  socials: [linkedin, x, github], // Contact
+  footerSocials: [linkedin, x, github, instagram], // footer only: Instagram is not in Contact
+  github,
+  openplanUrl: "https://www.openplanai.com/",
+  spotmiesUrl: "https://www.spotmies.com/",
+  reaidyUrl: "https://www.reaidy.io/", // checked 2026-11-04: loads properly
 };
 
 export const seo = {
   title: "Sekhar Javvadi — Founder, building OpenPlan AI",
   // Founder's instruction: the hero tagline moves out of the hero and into the meta description.
   description:
-    "Turning complex workflows into software products. Founder and product builder from Visakhapatnam. Co-founded Spotmies (2019), built Reaidy.io, and now building OpenPlan AI, software for hardware teams.",
+    "Turning complex workflows into software products. Founder and product builder from Bengaluru. Co-founded Spotmies (2019), built Reaidy.io, and now building OpenPlan AI, software for hardware teams.",
 };
 
 /* ============================================================================================
@@ -41,10 +72,7 @@ export const nav = [
 
 // TEMPORARY: sections that haven't been rebuilt yet still use their old ids. Delete each entry when its
 // section is rebuilt with the final id, and delete this map once it is empty.
-const anchorAliases: Record<string, string> = {
-  "#story": "#about",
-  "#principles": "#thinking",
-};
+const anchorAliases: Record<string, string> = {};
 export const resolveHref = (href: string) => anchorAliases[href] ?? href;
 
 /* ============================================================================================
@@ -82,9 +110,9 @@ export const hero = {
    01 — Story (brief §2.2)
    ============================================================================================ */
 
-export type StoryChapterV2 = {
+export type StoryChapter = {
   id: string;
-  badge: string;
+  badge: string; // sticker text; "Name · Year" is split into name and year on the sticker
   act: string;
   kicker: string;
   title: string;
@@ -95,6 +123,7 @@ export type StoryChapterV2 = {
 export const story = {
   label: "01 — Story",
   title: "I build technology by understanding how people actually work.",
+  // Not rendered: the founder chose a one-line section header (label + title only, no intro paragraph).
   intro:
     "My work has followed one instinct: when I see a workflow that technology can fix, I want to understand it deeply and build something useful around it. It started with hardware, took me through seven years of building software, and has brought me back to hardware.",
   chapters: [
@@ -113,7 +142,7 @@ export const story = {
       act: "Act II · Building software",
       kicker: "Co-founder",
       title: "Seven years of turning ideas into products.",
-      body: "In 2019 I co-founded Spotmies with Satish, Hemanth and Naveen [TODO: confirm names/permission]. We built web, mobile, AI and blockchain products for startups and businesses. The blockchain work included smart contracts, NFTs and decentralised apps.",
+      body: `In 2019 I co-founded Spotmies${spotmiesCofounders ? " with " + spotmiesCofounders : ""}. We built web, mobile, AI and blockchain products for startups and businesses. The blockchain work included smart contracts, NFTs and decentralised apps.`,
       learned: "How to understand a customer, scope under constraints, deliver with a team, and run a business.",
     },
     {
@@ -132,11 +161,25 @@ export const story = {
       kicker: "Now building",
       title: "Full circle.",
       body: "Now I'm bringing those years of software back to where I started. OpenPlan AI gives teams that build physical products one connected place for parts, BOMs, revisions and engineering changes.",
-      learned: { label: "→ See what I'm building", href: "#openplan" },
+      learned: { label: "→ See what I'm building", href: "#openplan" }, // the protected mat shows this as-is; the static list swaps the → for an animated icon
     },
-  ] satisfies StoryChapterV2[],
+  ] satisfies StoryChapter[],
   closing: "Every chapter has the same thread: make complex work easier to execute.",
+  // Interface text on the cutting mat and reading card.
+  mat: {
+    tape: "Founder story · 4 chapters",
+    groupLabel: "Founder story chapters",
+    hintPointer: "Drag the badges · click one to read",
+    hintTouch: "Swipe · tap a badge to read",
+    hintKeys: "← → to change chapter",
+    print: "Workbench · Bengaluru", // decorative mat printing (founder-approved wording)
+    chapter: "Chapter",
+    learned: "What it taught me",
+    prev: "← Prev",
+    next: "Next →",
+  },
 };
+export type StoryMatText = typeof story.mat;
 
 /* ============================================================================================
    02 — Now building: OpenPlan AI (brief §2.3)
@@ -145,19 +188,13 @@ export const story = {
 export const openplan = {
   label: "02 — Now building",
   title: "OpenPlan AI",
-  lead: {
-    todo: "[TODO: founder to pick ONE positioning, and match openplanai.com]",
-    optionA:
-      "OpenPlan AI helps hardware teams manage product structures, engineering changes and development work in one connected workspace.",
-    optionB:
-      "OpenPlan AI is an AI planning layer for hardware teams that works alongside the PLM tools they already use.",
-  },
-  meta: [
-    { label: "Status", value: "Built and working [TODO: add \"in pilots with N teams\" only if true]" },
-    { label: "For", value: "Hardware startups and product teams [TODO: confirm industries]" },
-    { label: "Started", value: "2026" },
-    { label: "Site", value: "openplanai.com" },
-  ],
+  // Founder-approved; matches openplanai.com. Rendered under the heading from step 2.
+  lead: "OpenPlan AI is an AI planning layer for hardware teams that works alongside the PLM tools they already use." as
+    | string
+    | null,
+  // Meta row under the lead (founder-approved). Stage: add "· in pilots with N teams" only if true.
+  meta: ["Built and working", "For hardware teams", "Since 2026"],
+  siteLink: { label: "openplanai.com", href: site.openplanUrl },
   problems: [
     { title: "Product data is scattered.", body: "Parts, BOMs and revisions live across spreadsheets and disconnected tools." },
     { title: "Changes are hard to control.", body: "Engineering changes move through email and chat, with no clear history." },
@@ -171,12 +208,44 @@ export const openplan = {
   ],
   whyMe: "I started in hardware and spent seven years building software. OpenPlan is where the two meet.",
   ctas: {
-    primary: { label: "See the product", href: "https://openplanai.com" },
+    primary: { label: "See the product", href: site.openplanUrl },
     secondary: { label: "Request a conversation", href: "#contact" },
-    tertiary: { label: "Hardware team? Request a demo →", href: "mailto:[TODO: email]?subject=OpenPlan%20demo" },
+    tertiary: { label: "Hardware team? Request a demo", href: `mailto:${site.email}?subject=OpenPlan%20demo` },
+  },
+  problemsLabel: "The problem",
+  capabilitiesLabel: "What it does",
+  // The boarding-pass card (field mapping approved by the user).
+  ticket: {
+    tier: "Now building",
+    date: "Since 2026",
+    passenger: "Hardware teams",
+    from: "Spreadsheets",
+    to: "One workspace",
+    modules: "BOM · ECO · Tasks",
+    status: "Built and working",
+    since: "2026",
+    site: "openplanai.com",
+    headline: "Part → Change → Task",
+    stamp: "Request a demo",
+    sideLabels: ["The product", "Boarding pass"] as [string, string],
+    labels: {
+      pass: "Boarding pass",
+      passenger: "Passenger",
+      from: "From",
+      to: "To",
+      modules: "Modules",
+      since: "Since",
+      status: "Status",
+      site: "Site",
+      route: "Route",
+      tear: "Tear here",
+      tearAction: "Tear off the stub",
+      reattach: "Reattach the stub",
+      sides: "Ticket side",
+    },
   },
   visual: {
-    todo: "[TODO: product screenshot(s) or a 10–15s muted looping MP4/WebM]",
+    screenshot: null as string | null, // product screenshot(s) or a 10–15s muted looping MP4/WebM
     // Fallback diagram until screenshots exist. "Change order" is the accented node.
     diagram: ["Part", "Assembly", "Revision", "Change order", "Task"],
     diagramDescription:
@@ -190,7 +259,7 @@ export const openplan = {
 
 export const metrics = {
   spotmies: {
-    asOf: "[TODO: month year]",
+    asOf: null as string | null, // "month year"
     scope: "Company figures",
     items: [
       { value: "40+", label: "projects delivered" },
@@ -200,7 +269,7 @@ export const metrics = {
     ],
   },
   reaidy: {
-    asOf: "[TODO: month year]",
+    asOf: null as string | null, // "month year"
     scope: "Historical figures, reported by the team",
     items: [
       { value: "50K+", label: "users" },
@@ -217,36 +286,44 @@ export const trackRecord = {
   spotmies: {
     id: "spotmies",
     name: "Spotmies LLP",
-    meta: "Co-founder & Technical Lead [TODO: confirm title, e.g. CTO] · 2019 – [TODO: present?] · Visakhapatnam",
+    meta: meta("Co-founder & Technical Lead", spotmiesEndYear ? `2019 – ${spotmiesEndYear}` : "2019", "Visakhapatnam"),
+    href: site.spotmiesUrl,
+    // Logo from spotmies.com (white lettering, so it sits on a dark plate on the paper).
+    logo: { src: "/brand/spotmies-logo.webp", width: 518, height: 112, alt: "Spotmies logo" },
+    // Wording taken from the Spotmies chapter and summary (no new claims).
+    chipsLabel: "What we built",
+    chips: ["Web", "Mobile", "AI", "Blockchain", "Smart contracts", "NFTs", "dApps"],
     summary:
       "A software product and services company that turns business requirements into working web, mobile, AI and blockchain products.",
     owned: "Technical direction, architecture and product decisions, and delivering projects with the team.",
     metrics: metrics.spotmies,
-    support: "Associated with AU Incubation Centre and A Hub, Andhra University. [TODO: confirm entity/dates]",
+    support: null as string | null, // was "Associated with AU Incubation Centre and A Hub, Andhra University." (entity unconfirmed)
     work: [
-      { name: "CypherB", description: "Blockchain recruitment and verification platform.", role: "My role: [TODO]" },
-      { name: "Indie Skull Syndicate", description: "NFT and blockchain community project.", role: "My role: [TODO]" },
-      { name: "Nandikrushi", description: "Organic grocery app.", role: "My role: [TODO]" },
+      { name: "CypherB", description: "Blockchain recruitment and verification platform.", role: null as string | null },
+      { name: "Indie Skull Syndicate", description: "NFT and blockchain community project.", role: null as string | null },
+      { name: "Nandikrushi", description: "Organic grocery app.", role: null as string | null },
     ],
     workFooter: "Built by the Spotmies team.",
-    team: "Co-founded with Satish, Hemanth and Naveen. [TODO: confirm]",
+    team: spotmiesCofounders,
   },
   reaidy: {
     id: "reaidy",
     name: "Reaidy.io",
-    status: "No longer operating",
-    meta: "[TODO: title] · [TODO: start year – end year]",
+    status: "Past venture", // reaidy.io is still live, so "No longer operating" read as false
+    meta: meta(reaidyTitle, reaidyYears),
+    href: site.reaidyUrl,
+    // Logo from reaidy.io (logo_white), on a dark plate like the Spotmies one.
+    logo: { src: "/brand/reaidy-logo.webp", width: 428, height: 64, alt: "Reaidy.io logo" },
+    // Wording taken from the Reaidy summary (no new claims).
+    chipsLabel: "The product",
+    chips: ["AI mock interviews", "Scorecards", "Resume screening", "Recruiter portal"],
     summary:
       "A two-sided AI hiring platform: AI mock interviews and scorecards for candidates, bulk resume screening and a recruiter portal for companies.",
     metrics: metrics.reaidy,
     support: "Part of Microsoft for Startups Founders Hub.",
-    whyStopped: "[TODO: one honest sentence]",
+    whyStopped: null as string | null, // one honest sentence; shown under the metrics when filled
     lesson:
       "AI quality came from the whole workflow (interview state, question history, evaluation), not just the model.",
-  },
-  range: {
-    text: "Hands-on across web, mobile, AI and speech, blockchain, cloud and embedded systems.",
-    link: { label: "GitHub →", href: "https://github.com/" }, // [TODO: confirm GitHub URL]
   },
 };
 
@@ -280,6 +357,36 @@ export const principles = {
     },
   ],
   vision: "I want to build practical platforms that help important industries move faster from ideas to real products.",
+  // Labels inside the three diagrams (ink-orbit-features). Added for the UI, not from the brief.
+  diagrams: {
+    flow: {
+      label: "People's everyday work flows through the product into sessions that keep running",
+      hub: "Product",
+      people: [
+        "Recruiter · screening candidates",
+        "Candidate · in an interview",
+        "Engineer · revising a part",
+        "Planner · raising a change order",
+        "Reviewer · away",
+      ],
+      output: "Session",
+    },
+    // 03: the parts around the model (from the old "lessons": context, memory, evaluation, guardrails)
+    parts: {
+      label: "The model in the middle, with context, memory, evaluation and guardrails around it",
+      items: ["Context", "Memory", "Evaluation", "Guardrails"],
+      verb: "adding",
+      idle: "around the model",
+    },
+    // 04: an illustrative usage curve; the tooltip shows no numbers
+    chart: {
+      label: "Usage growing over time, with a projected tail",
+      values: [22, 26, 24, 31, 29, 36, 34, 41, 39, 47, 52, 58],
+      projectedFrom: 8,
+      point: "wk",
+      projected: "projected",
+    },
+  },
 };
 
 /* ============================================================================================
@@ -295,11 +402,11 @@ export const contact = {
     { label: "Builders", text: "Always happy to compare notes." },
   ],
   email: site.email,
-  primary: { label: "Email me →", href: `mailto:${site.email}` },
+  primary: { label: "Email me", href: `mailto:${site.email}` },
   copy: { idle: "Copy", done: "Copied" },
   location: site.location,
   marquee: "INVESTORS · HARDWARE TEAMS · BUILDERS · OPENPLAN AI ·", // optional; decision deferred
-  footer: { copyright: "© 2026 Sekhar Javvadi", backToTop: "Back to top ↑" },
+  footer: { copyright: "© 2026 Sekhar Javvadi", backToTop: "Back to top" },
 };
 
 /* ============================================================================================
@@ -318,241 +425,6 @@ export const profile = {
 // LEGACY: HeroReveal (unused component; deleted in the cleanup step).
 // Placeholder "S" monogram.
 export const logo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M70 30C66 20 56 16 48 16 35 16 28 24 28 33c0 22 44 12 44 34 0 10-9 17-22 17-10 0-19-5-22-14" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/></svg>`;
-
-// LEGACY: old Founder Story section + FounderMat (5 chapters). Replaced by `story` above.
-export const about = {
-  throughLine:
-    "From IoT and application development, to blockchain and AI, to software for hardware product development — the consistent theme is building technology that makes complex work easier to execute.",
-  facts: [
-    { label: "Based in", value: "Visakhapatnam, India" },
-    { label: "Building", value: "OpenPlan AI" },
-    { label: "Co-founder", value: "Spotmies LLP" },
-    { label: "Disciplines", value: "Full-stack, AI, product architecture, blockchain, hardware workflows" },
-  ],
-  interests: [
-    "AI & automation",
-    "Product & entrepreneurship",
-    "Hardware & industrial tech",
-    "Blockchain & decentralised systems",
-    "Future of work & hiring",
-    "Cloud infrastructure & scaling",
-    "Go-to-market & storytelling",
-    "How founders think",
-  ],
-};
-
-export type StoryChapter = {
-  id: string;
-  badge: "round" | "id" | "hex" | "pill" | "now";
-  label: string;
-  role: string;
-  period: string;
-  title: string;
-  body: string;
-  learned: string;
-  stats?: { value: string; label: string }[];
-  note?: string;
-};
-
-export const storyIntro =
-  "My journey has been shaped by a simple instinct: when I see a problem that technology can solve, I want to understand it deeply and build something useful around it. Every badge on this mat is a chapter where that instinct took me somewhere new.";
-
-export const storyChapters: StoryChapter[] = [
-  {
-    id: "tinkerer",
-    badge: "round",
-    label: "Tinkerer",
-    role: "The tinkerer",
-    period: "Where it started",
-    title: "I started by making things work.",
-    body: "Before any company, there were circuits: NodeMCU boards, PIR-sensor anti-theft devices, schematics and PCBs. Getting code to behave in the physical world meant debugging patiently and respecting real constraints.",
-    learned: "How software meets physical systems — and how to debug what doesn't work yet.",
-  },
-  {
-    id: "cofounder",
-    badge: "id",
-    label: "Spotmies LLP",
-    role: "The co-founder",
-    period: "2019 onward",
-    title: "From writing code to owning outcomes.",
-    body: "In 2019 I co-founded Spotmies with a small team. Client work put me in front of real businesses across different industries: understanding requirements, working within constraints, delivering with a team, and running a technology business.",
-    learned: "Technology is most valuable when it solves a specific problem for a clearly defined user.",
-    stats: [
-      { value: "40+", label: "Projects" },
-      { value: "30+", label: "Clients" },
-      { value: "50", label: "Seat office" },
-    ],
-  },
-  {
-    id: "explorer",
-    badge: "hex",
-    label: "Web3",
-    role: "The explorer",
-    period: "Blockchain phase",
-    title: "Saying yes to a new frontier.",
-    body: "When blockchain emerged, we went in hands-on: smart contracts, NFTs, decentralised apps, wallet flows and gasless transactions — including a blockchain-based recruitment and verification platform.",
-    learned: "How to learn an unfamiliar ecosystem quickly and ship real products in it.",
-    stats: [{ value: "6+", label: "Blockchain projects" }],
-  },
-  {
-    id: "builder",
-    badge: "pill",
-    label: "Reaidy.io",
-    role: "The product builder",
-    period: "AI products",
-    title: "From one client's problem to a product at scale.",
-    body: "Services solve one problem at a time. I wanted to solve repeatable problems at scale. Reaidy applied AI to hiring — AI interviews, resume analysis and recruiter tools — for job seekers and companies alike.",
-    learned: "Applying AI to real workflows: quality, reliability, adoption and monetisation.",
-    stats: [
-      { value: "50K+", label: "Users" },
-      { value: "60K+", label: "AI interviews" },
-      { value: "200+", label: "Companies" },
-    ],
-    note: "Historical reported figures.",
-  },
-  {
-    id: "now",
-    badge: "now",
-    label: "OpenPlan AI",
-    role: "Now building",
-    period: "2026 —",
-    title: "Bringing it all together.",
-    body: "OpenPlan AI is software for teams that design and build physical products. It draws on everything before it: years of product engineering, technical architecture, my early hardware work, and a taste for complex operational problems.",
-    learned: "Still being written — that's the fun part.",
-  },
-];
-
-// LEGACY: old Ventures section. Replaced by `openplan` + `trackRecord` above.
-export type Venture = {
-  id: string;
-  name: string;
-  status: string;
-  period: string;
-  role?: string;
-  summary: string;
-  highlights: string[];
-  metrics?: { value: string; label: string }[];
-  metricsNote?: string;
-  href?: string;
-};
-
-export const ventures: Venture[] = [
-  {
-    id: "openplan",
-    name: "OpenPlan AI",
-    status: "Current focus",
-    period: "2026 —",
-    summary:
-      "OpenPlan AI helps hardware teams manage product structures, engineering changes, and development work in one connected workspace. Hardware teams coordinate parts, assemblies, BOMs, revisions, and change orders — and when that lives in disconnected documents and tools, they lose visibility and control as the product evolves.",
-    highlights: [
-      "Bill of Materials management across parts, assemblies, components, and sub-components",
-      "Product lifecycle workflows for organising product information and development activity",
-      "Engineering Change Orders for tracking and controlling product changes",
-      "Project management connected directly to product development work",
-    ],
-    href: "https://www.openplanai.com",
-  },
-  {
-    id: "spotmies",
-    name: "Spotmies LLP",
-    status: "Co-founder",
-    period: "2019 —",
-    role: "Co-founder & technical lead",
-    summary:
-      "A technology services and product development company that turns ideas and business requirements into working digital products for enterprises, startups, and clients across sectors. I lead technical direction, architecture, and development, and help the team deliver — from early idea and UX through engineering and launch.",
-    highlights: [
-      "Web and mobile applications for clients across different industries",
-      "Conventional software, AI-enabled applications, and blockchain solutions",
-      "Associated with AU Incubation Centre and A Hub, Andhra University",
-      "Grew into a 50-seat office in Visakhapatnam",
-    ],
-    metrics: [
-      { value: "40+", label: "Projects" },
-      { value: "30+", label: "Clients" },
-      { value: "6+", label: "Blockchain projects" },
-    ],
-  },
-  {
-    id: "reaidy",
-    name: "Reaidy.io",
-    status: "AI product",
-    period: "Previous",
-    summary:
-      "An AI-enabled hiring and interview platform: job seekers prepare for interviews, and recruiters streamline screening and hiring. A two-sided product that brought together LLMs, speech technology, recruiter operations, and a usage-based business model.",
-    highlights: [
-      "AI interviews that generate questions for any topic or technology, plus structured manual interviews",
-      "AI evaluation and scorecards, resume building, and resume analysis",
-      "Bulk resume sorting — upload resumes and a job description, get AI relevance scores",
-      "Recruiter portal with history and spreadsheet export; credit-based usage model",
-      "Part of Microsoft for Startups Founders Hub",
-    ],
-    metrics: [
-      { value: "50K+", label: "Users" },
-      { value: "200+", label: "Hiring companies" },
-      { value: "40+", label: "College partners" },
-      { value: "60K+", label: "AI interviews" },
-    ],
-    metricsNote: "Historical reported figures.",
-  },
-];
-
-// LEGACY: Journey section (to be removed entirely).
-export const journey = [
-  {
-    phase: "Early technical exploration",
-    what: "IoT, microcontrollers, sensors, anti-theft systems, PCB and schematic design.",
-    learned: "Connecting software with physical systems, hardware constraints, and practical debugging.",
-  },
-  {
-    phase: "2019 onward — Spotmies",
-    what: "Co-founded Spotmies LLP and grew a software services and product development capability.",
-    learned: "Customer discovery, delivery, technical ownership, team coordination, and commercial execution.",
-  },
-  {
-    phase: "Blockchain",
-    what: "Blockchain applications, NFTs, decentralised apps, and related integrations.",
-    learned: "New ecosystems, wallet and transaction flows, smart contracts, and decentralised storage.",
-  },
-  {
-    phase: "AI products — Reaidy.io",
-    what: "AI interviews, resume evaluation, recruiter workflows, and speech technology.",
-    learned: "Applying AI to real workflows: prompt design, UX, reliability, and monetisation.",
-  },
-  {
-    phase: "2026 — OpenPlan AI",
-    what: "Building software for hardware product development and lifecycle workflows.",
-    learned: "Structured engineering data, collaboration, and vertical software opportunities.",
-  },
-];
-
-// LEGACY: Selected Work section (to be removed; 3 projects move into trackRecord.spotmies.work).
-export const work: { title: string; description: string; tags: string[]; context: string }[] = [
-  { title: "CypherB", description: "A blockchain-based recruitment and verification platform.", tags: ["Blockchain", "Hiring"], context: "Spotmies" },
-  { title: "Indie Skull Syndicate", description: "An NFT and blockchain community project.", tags: ["NFT", "Web3"], context: "Spotmies" },
-  { title: "Oscar Chatbot", description: "A conversational chatbot built for a client.", tags: ["AI", "Chatbot"], context: "Client work · Spotmies" },
-  { title: "StreamCity", description: "A streaming product for yoga classes.", tags: ["Streaming", "Wellness"], context: "Client work · Spotmies" },
-  { title: "Nandikrushi", description: "An organic grocery shopping application.", tags: ["Commerce", "App"], context: "Client work · Spotmies" },
-  {
-    title: "Hardware & IoT prototypes",
-    description: "NodeMCU / ESP8266 systems, PIR-sensor anti-theft devices, PCB and schematic design.",
-    tags: ["IoT", "Embedded", "PCB"],
-    context: "Early work",
-  },
-];
-
-// LEGACY: Capabilities grid (to be removed; replaced by trackRecord.range).
-export const capabilities: { domain: string; tools: string[]; context: string }[] = [
-  { domain: "Frontend & web", tools: ["React", "Next.js", "Tailwind CSS", "Material UI", "Bootstrap"], context: "Application interfaces, dashboards, portals, and responsive products." },
-  { domain: "Backend", tools: ["Node.js", "Express", "MongoDB", "MySQL"], context: "APIs, services, data models, and integrations." },
-  { domain: "Mobile", tools: ["Flutter", "React Native", "Expo", "NativeWind", "Zustand"], context: "Cross-platform mobile product experiences." },
-  { domain: "Artificial intelligence", tools: ["Azure OpenAI", "OpenAI APIs", "LangChain", "Embeddings", "Prompt engineering"], context: "AI interviews, resume analysis, question generation, scoring, semantic search." },
-  { domain: "Speech & media", tools: ["Whisper", "Azure Speech to Text", "Speech SDKs"], context: "Voice-based interview experiences." },
-  { domain: "Data & search", tools: ["MongoDB", "Vector search", "Pinecone"], context: "Resume retrieval and retrieval-quality trade-offs." },
-  { domain: "Blockchain", tools: ["Solidity", "Polygon", "IPFS", "nft.storage", "Biconomy"], context: "Smart contracts, NFTs, dApps, and gasless transactions." },
-  { domain: "Cloud & delivery", tools: ["Azure", "Supabase", "Railway", "Vercel"], context: "Deployment, cloud architecture, and running production apps." },
-  { domain: "Computer vision & ML", tools: ["OpenCV", "MediaPipe", "face-api.js", "YOLOv8", "NumPy"], context: "Exploration and implementation of vision workflows." },
-  { domain: "Hardware & IoT", tools: ["NodeMCU", "ESP8266", "PIR sensors", "PCB design"], context: "Embedded systems and physical prototyping." },
-];
 
 // LEGACY: old How I Build section. Replaced by `principles` above.
 export const thinking = {

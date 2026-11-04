@@ -1,5 +1,6 @@
 "use client";
 
+import { Menu, X } from "@/components/HoverIcons";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import PillNav from "@/components/ui/PillNav";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -191,9 +192,7 @@ function MobileNav({ active }: { active: string }) {
             onClick={() => setOpen(true)}
             className={roundButton}
           >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
-              <path d="M4 8h16M4 16h16" />
-            </svg>
+            <Menu size={20} />
           </button>
         </div>
       </div>
@@ -212,9 +211,7 @@ function MobileNav({ active }: { active: string }) {
               {initials}
             </span>
             <button type="button" aria-label="Close menu" onClick={() => close()} className={roundButton}>
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden>
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
+              <X size={20} />
             </button>
           </div>
           <nav aria-label="Main" className="mt-12 flex-1">

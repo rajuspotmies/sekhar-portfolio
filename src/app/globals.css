@@ -89,8 +89,10 @@
   --font-serif: var(--font-instrument-serif);
 }
 
-html {
-  scroll-padding-top: 5rem;
+/* Step 10: every section clears the floating nav when jumped to (nav links, hero links, #hash URLs).
+   Replaces the old html scroll-padding-top so the offset isn't applied twice. */
+section[id] {
+  scroll-margin-top: 5rem;
 }
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
@@ -390,3 +392,12 @@ body {
   .cut-line, .wave-bar, .note-enter { animation: none; }
   .badge { transition: none; }
 }
+
+/* ---------- 05 Contact: giant sign-off (always visible) ---------- */
+.contact-title {
+  font-size: clamp(64px, 11vw, 160px);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+.contact-magnet { transition: transform 0.45s var(--ease-spring), opacity 0.2s; }
+.contact-magnet:hover { opacity: 0.9; }

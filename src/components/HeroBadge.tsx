@@ -40,17 +40,35 @@ function warm(src: string) {
   });
 }
 
-// After the page has loaded and the main thread is idle, so the 3D code never competes with first paint.
-function whenIdle(run: () => void) {
+// Load timing only (step P). The 3D startup costs ~1.6s of main thread on a mid phone, so it starts on the
+// visitor's first interaction, or once the page has been loaded and quiet for QUIET_MS, whichever is first.
+// Either way it then waits for an idle moment. The static still covers the box until then.
+const QUIET_MS = 4000;
+const INTERACTIONS = ["pointerdown", "keydown", "wheel", "touchstart", "scroll"] as const;
+
+function whenReady(run: () => void) {
   const idle = typeof window.requestIdleCallback === "function";
+  let done = false;
+  let quiet = 0;
   let handle = 0;
-  const schedule = () => {
-    handle = idle ? window.requestIdleCallback(run, { timeout: 2500 }) : window.setTimeout(run, 600);
+  const go = () => {
+    if (done) return;
+    done = true;
+    cleanup();
+    handle = idle ? window.requestIdleCallback(run, { timeout: 1500 }) : window.setTimeout(run, 1500);
   };
-  if (document.readyState === "complete") schedule();
-  else window.addEventListener("load", schedule, { once: true });
+  const startQuiet = () => (quiet = window.setTimeout(go, QUIET_MS));
+  const cleanup = () => {
+    INTERACTIONS.forEach((e) => window.removeEventListener(e, go));
+    window.removeEventListener("load", startQuiet);
+    window.clearTimeout(quiet);
+  };
+  INTERACTIONS.forEach((e) => window.addEventListener(e, go, { once: true, passive: true }));
+  if (document.readyState === "complete") startQuiet();
+  else window.addEventListener("load", startQuiet, { once: true });
   return () => {
-    window.removeEventListener("load", schedule);
+    done = true;
+    cleanup();
     if (idle) window.cancelIdleCallback(handle);
     else window.clearTimeout(handle);
   };
@@ -73,7 +91,7 @@ export default function HeroBadge({ alt, hint, className = "" }: { alt: string; 
       return;
     }
     let cancelled = false;
-    const cancelIdle = whenIdle(async () => {
+    const cancelIdle = whenReady(async () => {
       const [mod] = await Promise.all([import("@/components/ui/Lanyard"), ...TEXTURES.map(warm)]);
       if (!cancelled) setLive(() => mod.default);
     });
@@ -96,6 +114,8 @@ export default function HeroBadge({ alt, hint, className = "" }: { alt: string; 
       <div className="hero-badge-stage">
         {/* Still (reduced motion / no WebGL only): a capture of the live badge at rest. The 3D card scales
             with the canvas height and is centred horizontally, so a full-height, centred image lines up. */}
+        {/* Only for reduced motion / no WebGL. Not shown while the live badge waits: the brief requires the
+            LCP element to be the hero text, and a still here becomes the LCP (measured: 1.1s → 3.3s). */}
         {still && (
           // eslint-disable-next-line @next/next/no-img-element -- pre-optimised WebP with its own srcset
           <img
