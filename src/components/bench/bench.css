@@ -35,7 +35,7 @@
 .dark .bench.iso {
   --anatomy-text: #a8a29e;
   --anatomy-strong: #f5f5f4;
-  --anatomy-muted: #78716c;
+  --anatomy-muted: #a8a29e; /* was #78716c: 3.78:1 on the dark card; small text needs 4.5:1 (2026-11-05) */
   --anatomy-paper: #1c1917;
   --anatomy-face: #24201d;
   --anatomy-top: #292522;
@@ -364,8 +364,7 @@
   color: var(--anatomy-muted);
 }
 .asm-panel-of {
-  letter-spacing: 0.12em;
-  opacity: 0.75;
+  letter-spacing: 0.12em; /* opacity 0.75 removed: it dropped this 10.5px text below 4.5:1 (2026-11-05) */
 }
 .asm-panel-title {
   margin-top: 18px;

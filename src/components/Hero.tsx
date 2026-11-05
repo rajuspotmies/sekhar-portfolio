@@ -10,7 +10,9 @@ const HERO_ID = "hero";
  *   Left (~55%): "between / Hardware / & Software." → H1 name → role → bio → CTAs → trail.
  *   Right: the hanging ID badge. Its strap starts at the top of the page; its size and drop follow the
  *   viewport height (--H in globals.css) and the left column is centred on the card, so the two balance.
- * Below 1024px everything stacks: the text first, then the badge.
+ * 768–1023px everything stacks: the text first, then the badge.
+ * Phones (≤ 767px, founder 2026-11-05): statement on top, then name + role beside a smaller card, then bio,
+ * CTAs and trail, so the card is on the first screen (grid in globals.css, "Hero on phones").
  */
 export default function Hero() {
   const { statement: s } = hero;
@@ -85,15 +87,15 @@ export default function Hero() {
               </span>
             </div>
 
-            <h1 id="hero-title" className="mt-10 font-serif text-[48px] leading-none font-normal tracking-[-0.01em] lg:text-[60px]">
+            <h1 id="hero-title" className="hero-name mt-10 font-serif text-[44px] leading-none font-normal tracking-[-0.01em] sm:text-[48px] lg:text-[60px]">
               {hero.name}
               <span className="text-accent">.</span>
             </h1>
-            <p className="mt-3 font-mono text-[13px] uppercase tracking-[0.12em] text-muted">{hero.role}</p>
+            <p className="hero-role mt-3 font-mono text-[13px] uppercase tracking-[0.12em] text-muted">{hero.role}</p>
 
             <div className="hero-identity">
-              <p className="mt-4 max-w-[60ch] text-[17px] leading-relaxed text-muted">{hero.bio}</p>
-              <div className="mt-7 flex flex-wrap gap-3">
+              <p className="hero-bio mt-4 max-w-[60ch] text-[17px] leading-relaxed text-muted">{hero.bio}</p>
+              <div className="hero-ctas mt-7 flex flex-wrap gap-3">
                 <a
                   href={resolveHref(hero.ctas.primary.href)}
                   className="press inline-flex h-11 items-center rounded-full bg-foreground px-6 text-sm font-medium text-background hover:opacity-90"
@@ -109,7 +111,7 @@ export default function Hero() {
               </div>
 
               {/* Venture trail */}
-              <nav aria-label="Ventures" className="mt-6">
+              <nav aria-label="Ventures" className="hero-trail mt-6">
                 <ol className="flex flex-wrap items-center gap-x-2 font-mono text-xs text-muted">
                   {hero.trail.map((t, i) => (
                     <li key={t.href} className="flex items-center gap-2">

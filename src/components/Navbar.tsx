@@ -1,10 +1,11 @@
 "use client";
 
-import { Menu, X } from "@/components/HoverIcons";
+// Static icons: the animated (hover) ones morphed ☰ into ✕ under the finger right after closing the menu.
+import { Menu as MenuStatic, X as XStatic } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import PillNav from "@/components/ui/PillNav";
 import ThemeToggle from "@/components/ThemeToggle";
-import { nav, resolveHref, site } from "@/data/portfolio";
+import { contact, nav, resolveHref, site } from "@/data/portfolio";
 import { useIsDark } from "@/lib/useIsDark";
 import { cn } from "@/lib/utils";
 
@@ -78,13 +79,13 @@ export default function Navbar() {
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-50 pt-4">
-      {/* Desktop / tablet (≥ 768px): centred pill, theme toggle on the right. */}
-      <div className="mx-auto hidden max-w-6xl grid-cols-[44px_1fr_44px] items-center gap-2 px-6 md:grid">
+      {/* Desktop (≥ 1024px): centred pill, theme toggle on the right. Was ≥ 768px; with 8 items the pill no longer fits tablets. */}
+      <div className="mx-auto hidden max-w-6xl grid-cols-[44px_1fr_44px] items-center gap-2 px-6 lg:grid">
         <span />
         <div className="pointer-events-auto flex min-w-0 justify-center">
           <PillNav
             logo={<span className="text-[13px] font-bold tracking-tight">{initials}</span>}
-            logoAlt={`${site.name}: back to top`}
+            logoAlt={`${initials}, ${site.name}: back to top`}
             logoHref="#top"
             items={items}
             activeHref={active}
@@ -102,7 +103,7 @@ export default function Navbar() {
         <ThemeToggle className={cn("pointer-events-auto", roundButton)} />
       </div>
 
-      {/* Mobile (< 768px): SJ mark + theme toggle + menu button that opens a full-screen sheet. */}
+      {/* Mobile and tablet (< 1024px): SJ mark + theme toggle + menu button that opens a floating panel. */}
       <MobileNav active={active} />
     </header>
   );
@@ -125,8 +126,8 @@ function MobileNav({ active }: { active: string }) {
     const previousOverflow = root.style.overflow;
     root.style.overflow = "hidden";
     const focusables = () =>
-      Array.from(sheet.current?.querySelectorAll<HTMLElement>("a[href], button:not([disabled])") ?? []);
-    focusables()[0]?.focus();
+      Array.from(sheet.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]):not([tabindex="-1"])') ?? []);
+    (sheet.current?.querySelector<HTMLElement>("nav a") ?? focusables()[0])?.focus(); // start on the first section
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -156,7 +157,7 @@ function MobileNav({ active }: { active: string }) {
 
   // Close if the viewport grows past the mobile breakpoint while open.
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
+    const mq = window.matchMedia("(min-width: 1024px)");
     const onChange = () => mq.matches && setOpen(false);
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
@@ -177,8 +178,8 @@ function MobileNav({ active }: { active: string }) {
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 md:hidden">
-        <a href="#top" aria-label={`${site.name}: back to top`} className={cn("pointer-events-auto text-[13px] font-bold tracking-tight", roundButton)}>
+      <div className="flex items-center justify-between px-4 lg:hidden">
+        <a href="#top" aria-label={`${initials}, ${site.name}: back to top`} className={cn("pointer-events-auto text-[13px] font-bold tracking-tight", roundButton)}>
           {initials}
         </a>
         <div className="pointer-events-auto flex items-center gap-2">
@@ -192,11 +193,13 @@ function MobileNav({ active }: { active: string }) {
             onClick={() => setOpen(true)}
             className={roundButton}
           >
-            <Menu size={20} />
+            <MenuStatic size={20} />
           </button>
         </div>
       </div>
 
+      {/* Phone/tablet menu (founder, 2026-11-05): a floating glass panel under the bar, the page dimmed behind.
+          Replaces the full-screen list of big words. Tapping the dimmed page closes it. */}
       {open && (
         <div
           ref={sheet}
@@ -204,37 +207,67 @@ function MobileNav({ active }: { active: string }) {
           role="dialog"
           aria-modal="true"
           aria-label="Menu"
-          className="pointer-events-auto fixed inset-0 z-[60] flex flex-col bg-background px-4 pt-4 pb-10 md:hidden"
+          className="menu-in pointer-events-auto fixed inset-0 z-[60] lg:hidden"
         >
-          <div className="flex items-center justify-between">
-            <span className="grid h-11 w-11 place-items-center text-[13px] font-bold tracking-tight" aria-hidden>
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden
+            onClick={() => close(false)}
+            className="menu-dim absolute inset-0 h-full w-full cursor-default bg-black/35 backdrop-blur-[2px]"
+          />
+          {/* The bar again, above the dim, so the close button sits exactly where the menu button was. */}
+          <div className="relative flex items-center justify-between px-4 pt-4">
+            <span className={cn("text-[13px] font-bold tracking-tight", roundButton)} aria-hidden>
               {initials}
             </span>
-            <button type="button" aria-label="Close menu" onClick={() => close()} className={roundButton}>
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              <ThemeToggle className={roundButton} />
+              <button type="button" aria-label="Close menu" onClick={(e) => close(e.detail === 0) /* focus back to ☰ only for keyboard */} className={roundButton}>
+                {/* Static icon: the animated one restarted under the opening tap and could stay invisible */}
+                <XStatic size={20} />
+              </button>
+            </div>
           </div>
-          <nav aria-label="Main" className="mt-12 flex-1">
-            <ul className="space-y-2">
-              {items.map((item) => {
-                const isActive = item.href === active;
-                return (
-                  <li key={item.href}>
-                    <a
-                      href={item.href}
-                      onClick={go(item.href)}
-                      aria-current={isActive ? "location" : undefined}
-                      className="flex min-h-14 items-center gap-4 text-4xl font-semibold tracking-tight"
-                    >
-                      {item.label}
-                      {isActive && <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-          <p className="font-mono text-xs uppercase tracking-[0.12em] text-muted">{site.location}</p>
+          <div
+            style={{ background: "color-mix(in oklab, var(--card) 90%, transparent)" }} /* more solid than .glass: the list must read over busy sections */
+            className="menu-panel glass relative mx-4 mt-3 max-h-[calc(100svh-6rem)] overflow-y-auto rounded-3xl p-2 sm:mx-auto sm:max-w-md">
+            <nav aria-label="Main">
+              <ul>
+                {items.map((item, i) => {
+                  const isActive = item.href === active;
+                  return (
+                    <li key={item.href}>
+                      <a
+                        href={item.href}
+                        onClick={go(item.href)}
+                        aria-current={isActive ? "location" : undefined}
+                        className={cn(
+                          "flex min-h-12 items-center gap-4 rounded-2xl px-4 text-[17px] transition-colors",
+                          isActive ? "bg-foreground/[0.06] text-foreground" : "text-foreground/85 hover:bg-foreground/[0.04]",
+                        )}
+                      >
+                        <span className={cn("w-5 font-mono text-[11px] tracking-wider", isActive ? "text-accent" : "text-muted")} aria-hidden>
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="flex-1">{item.label}</span>
+                        {isActive && <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />}
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+            <div className="mx-2 mt-2 flex items-center justify-between gap-3 border-t border-border px-2 pt-3 pb-2">
+              <a
+                href={contact.primary.href}
+                className="press inline-flex h-11 items-center gap-1.5 rounded-full bg-foreground px-5 text-sm font-medium text-background"
+              >
+                {contact.primary.label} <span aria-hidden>→</span>
+              </a>
+              <span className="font-mono text-[11px] tracking-[0.12em] text-muted uppercase">{site.location}</span>
+            </div>
+          </div>
         </div>
       )}
     </>

@@ -77,6 +77,21 @@
   .press:active { transform: scale(0.97); }
 }
 
+/* ui/notched-project-card: cards rise into place as they scroll in, staggered across a row by --npc-i.
+   Scroll-driven (no JS); browsers without view timelines, and reduced motion, just show the cards. */
+@keyframes npc-rise {
+  from { opacity: 0; transform: translateY(32px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .npc-reveal {
+      animation: npc-rise linear both;
+      animation-timeline: view();
+      animation-range: entry calc(var(--npc-i, 0) * 8%) entry calc(55% + var(--npc-i, 0) * 8%);
+    }
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -84,6 +99,16 @@
   --color-card: var(--card);
   --color-border: var(--border);
   --color-accent: var(--accent);
+  /* shadcn names used by ui/picture-rail-gallery, mapped onto this site's palette (additive: nothing else uses them) */
+  --color-muted-foreground: var(--muted);
+  --color-card-foreground: var(--foreground);
+  --color-ring: var(--accent);
+  --color-chart-2: var(--accent);
+  /* ...and by ui/notched-project-card: secondary = the hairline/chip surface, primary = the site's black/white pill */
+  --color-secondary: var(--border);
+  --color-secondary-foreground: var(--foreground);
+  --color-primary: var(--foreground);
+  --color-primary-foreground: var(--background);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-instrument-serif);
@@ -96,6 +121,14 @@ section[id] {
 }
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
+}
+
+/* Phone menu (Navbar.tsx): the page dims and the glass panel drops in from under the bar. */
+@keyframes menu-dim-in { from { opacity: 0; } }
+@keyframes menu-panel-in { from { opacity: 0; transform: translateY(-8px) scale(0.98); } }
+@media (prefers-reduced-motion: no-preference) {
+  .menu-in .menu-dim { animation: menu-dim-in 200ms ease-out both; }
+  .menu-in .menu-panel { animation: menu-panel-in 260ms var(--ease-std) both; transform-origin: top right; }
 }
 
 /* ---------- Hero: text column + hanging ID badge ----------
@@ -130,6 +163,8 @@ section[id] {
   mask-image: linear-gradient(to bottom, transparent, #000 25%);
 }
 .hero-badge-still { top: 0; }
+/* Phone-only still of the badge (HeroBadge.tsx); tablets and desktop show the live 3D badge instead. */
+@media (min-width: 768px) { .hero-badge-phone { display: none; } }
 .hero-badge-hint {
   position: absolute;
   left: 50%;
@@ -150,6 +185,43 @@ section[id] {
 }
 @media (min-width: 640px) {
   .hero { --H: 290px; }
+}
+
+/* Hero on phones (founder, 2026-11-05): the text used to fill the whole first screen with the card below
+   it. Now: statement on top; name + role on the left beside a smaller card on the right (its strap rises
+   into the free space right of "& Software."); then bio, CTAs and trail full width. The wrappers become
+   display:contents so their children can be placed on one grid. Tablet and desktop are unchanged. */
+@media (max-width: 767px) {
+  .hero { --H: min(200px, 46vw); }
+  .hero-box {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44%;
+    grid-template-areas:
+      "statement statement"
+      "name badge"
+      "role badge"
+      "bio bio"
+      "ctas ctas"
+      "trail trail";
+    column-gap: 12px;
+  }
+  .hero-copy,
+  .hero-identity { display: contents; }
+  .hero-statement { grid-area: statement; }
+  .hero-name { grid-area: name; align-self: end; }
+  .hero-role { grid-area: role; align-self: start; }
+  .hero-bio { grid-area: bio; }
+  .hero-ctas { grid-area: ctas; }
+  .hero-trail { grid-area: trail; }
+  /* The card's top sits at 0.30·C in its canvas; pull the canvas up by that much so the card starts
+     level with the name and the strap hangs beside the statement. Footprint = card height (0.48·C). */
+  .hero-badge {
+    grid-area: badge;
+    align-self: start;
+    height: calc(var(--C) * 0.78);
+    margin-top: calc(var(--C) * -0.30 + 2.5rem);
+  }
+  .hero-badge-stage { width: calc(var(--C) * 0.75); }
 }
 
 /* The giant statement words: each line rises inside its own mask. Padding keeps serif overhangs unclipped. */

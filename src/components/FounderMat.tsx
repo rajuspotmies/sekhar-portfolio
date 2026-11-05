@@ -150,12 +150,12 @@ export default function FounderMat({ chapters, text }: FounderMatProps) {
       role="group"
       aria-label={text.groupLabel}
       onKeyDown={onKeyDown}
-      className="cutting-mat relative overflow-hidden rounded-[28px] p-4 pt-12 pl-4 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.5)] sm:p-8 sm:pt-14 sm:pb-14 sm:pl-14"
+      className="cutting-mat relative overflow-hidden rounded-[28px] p-4 pt-10 pl-4 shadow-[0_30px_60px_-30px_rgba(0,0,0,0.5)] sm:p-8 sm:pt-14 sm:pb-14 sm:pl-14"
     >
       <MatMarkings print={text.print} />
 
       {/* Label-maker tape */}
-      <div className="relative z-10 mb-6 flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="relative z-10 mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 sm:mb-6">
         <span className="dymo -rotate-1">{text.tape}</span>
         <span className="font-mono text-[11px] uppercase tracking-widest text-white">
           {canDrag ? text.hintPointer : text.hintTouch}
@@ -163,11 +163,11 @@ export default function FounderMat({ chapters, text }: FounderMatProps) {
         <span className="hidden font-mono text-[11px] uppercase tracking-widest text-white lg:inline">· {text.hintKeys}</span>
       </div>
 
-      <div className="relative z-10 grid gap-8 lg:grid-cols-[1.45fr_1fr] lg:gap-6">
+      <div className="relative z-10 grid gap-3 sm:gap-8 lg:grid-cols-[1.45fr_1fr] lg:gap-6">
         {/* Sticker area: free-form and draggable on desktop, a snap-scroll row everywhere else */}
         <div
           ref={areaRef}
-          className="relative -mx-4 flex snap-x snap-mandatory items-center gap-8 overflow-x-auto px-6 pt-4 pb-6 scrollbar-none sm:-mx-8 sm:px-10 lg:mx-0 lg:block lg:h-140 lg:overflow-visible lg:p-0"
+          className="story-row relative -mx-4 flex max-md:[&_.badge]:[zoom:0.6] snap-x snap-mandatory items-center gap-5 overflow-x-auto px-6 pt-3 pb-4 scrollbar-none sm:gap-8 sm:pt-4 sm:pb-6 sm:-mx-8 sm:px-10 lg:mx-0 lg:block lg:h-140 lg:overflow-visible lg:p-0"
         >
           {canDrag && area.w > 0 && (
             <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
@@ -195,7 +195,7 @@ export default function FounderMat({ chapters, text }: FounderMatProps) {
                   if (!canDrag || e.detail === 0) select(i);
                 }}
                 aria-pressed={isActive}
-                aria-label={`${text.chapter} ${i + 1}: ${c.kicker}, ${splitBadge(c.badge).name}`}
+                aria-label={`${pad(i + 1)} ${text.chapter} ${i + 1}: ${c.kicker}, ${[splitBadge(c.badge).name, splitBadge(c.badge).year].filter(Boolean).join(" ")}`}
                 style={
                   {
                     "--x": `${pos[i].x}%`,
@@ -221,7 +221,7 @@ export default function FounderMat({ chapters, text }: FounderMatProps) {
         </div>
 
         {/* Reading card */}
-        <article className="note-card relative self-start lg:mt-6 lg:rotate-[1.5deg]">
+        <article className="note-card relative self-start max-md:px-[18px]! max-md:pt-[22px]! max-md:pb-4! lg:mt-6 lg:rotate-[1.5deg]">
           <span className="tape" aria-hidden />
           <div aria-live="polite">
             <div key={chapter.id} className="note-enter">
@@ -231,16 +231,16 @@ export default function FounderMat({ chapters, text }: FounderMatProps) {
                   {text.chapter} {pad(active + 1)} / {pad(chapters.length)}
                 </span>
               </div>
-              <p className="mt-5 font-mono text-xs uppercase tracking-[0.2em] text-indigo-700">{chapter.kicker}</p>
-              <h3 className="mt-2 text-2xl font-semibold tracking-tight text-balance text-stone-900 sm:text-3xl">
+              <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-indigo-700 sm:mt-5">{chapter.kicker}</p>
+              <h3 className="mt-1.5 text-xl font-semibold tracking-tight text-balance text-stone-900 sm:mt-2 sm:text-3xl">
                 {chapter.title}
               </h3>
-              <p className="mt-4 leading-relaxed text-stone-700">{chapter.body}</p>
+              <p className="mt-3 text-[15px] leading-relaxed text-stone-700 sm:mt-4 sm:text-base">{chapter.body}</p>
 
               {typeof chapter.learned === "string" ? (
-                <div className="mt-5 rounded-xl border border-dashed border-stone-300 bg-amber-50/60 p-4">
+                <div className="mt-4 rounded-xl border border-dashed border-stone-300 bg-amber-50/60 p-3 sm:mt-5 sm:p-4">
                   <p className="font-mono text-[11px] uppercase tracking-widest text-stone-600">{text.learned}</p>
-                  <p className="mt-1 font-medium text-stone-800">{chapter.learned}</p>
+                  <p className="mt-1 text-[15px] font-medium text-stone-800 sm:text-base">{chapter.learned}</p>
                 </div>
               ) : (
                 <a
@@ -253,7 +253,7 @@ export default function FounderMat({ chapters, text }: FounderMatProps) {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-between border-t border-stone-200 pt-4">
+          <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3 sm:mt-6 sm:pt-4">
             <button type="button" onClick={() => step(-1)} className={navBtn}>
               {text.prev}
             </button>

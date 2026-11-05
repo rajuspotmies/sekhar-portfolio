@@ -27,9 +27,27 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
+// Link previews (founder, 2026-11-05). The image itself is src/app/opengraph-image.tsx, which Next adds as
+// og:image automatically; metadataBase makes its URL absolute. X falls back to og:image.
 export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
   title: seo.title,
   description: seo.description,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: site.name,
+    title: seo.title,
+    description: seo.description,
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: seo.title,
+    description: seo.description,
+    creator: "@sekharjv",
+  },
 };
 
 // Structured data (brief §8): Person + the two organisations. Locality is Bengaluru (founder's base).

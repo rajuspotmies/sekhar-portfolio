@@ -19,6 +19,10 @@ import {
 } from "@/data/portfolio";
 import InkOrbitFeatures from "@/components/ui/ink-orbit-features";
 import ContactSection from "@/components/ContactSection";
+// import ProjectsSection from "@/components/ProjectsSection"; // hidden for now (founder, 2026-11-05)
+import ExperienceSection from "@/components/ExperienceSection";
+import TestimonialsSection from "@/components/TestimonialsSection";
+import EducationSection from "@/components/EducationSection";
 
 const primaryBtn =
   "rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition hover:opacity-90"; // step 8: black pill (light) / white pill (dark)
@@ -43,11 +47,17 @@ export default function Home() {
             {story.closing}
           </p>
         </Section>
+        </div>
 
-        {/* 02 Now building: OpenPlan AI (brief §2.3). Own section so the nav's OpenPlan and Ventures targets don't overlap. */}
+        {/* 02 Education journey (founder, 2026-11-04): full-bleed pinned timeline, so it sits outside the column */}
+        <EducationSection />
+
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+
+        {/* 03 Now building: OpenPlan AI (brief §2.3). Own section so the nav's OpenPlan and Ventures targets don't overlap. */}
         <Section
           id="openplan"
-          index="02"
+          index="03"
           eyebrow="Now building"
           title={
             <span className="inline-flex items-center gap-3">
@@ -95,20 +105,28 @@ export default function Home() {
               <a href={openplan.ctas.secondary.href} className={secondaryBtn + " inline-flex items-center gap-1.5"}>
                 {openplan.ctas.secondary.label} <ArrowRight size={16} />
               </a>
-              <a href={openplan.ctas.tertiary.href} className="w-full text-sm text-muted underline-offset-4 transition hover:text-foreground hover:underline lg:text-right">
+              <a href={openplan.ctas.tertiary.href} className="-my-1 w-full py-1 text-sm text-muted underline-offset-4 transition hover:text-foreground hover:underline lg:text-right">
                 {openplan.ctas.tertiary.label} <ArrowRight size={14} />
               </a>
             </div>
           </div>
         </Section>
 
-        {/* 03 Ventures (brief §2.4 content): a book that opens on scroll, Spotmies left, Reaidy right */}
-        <Section id="ventures" index="03" eyebrow="Ventures" title={trackRecord.title}>
-          <VenturesBook coverKicker="03 — Ventures" />
+        {/* 04 Ventures (brief §2.4 content): a book that opens on scroll, Spotmies left, Reaidy right */}
+        <Section id="ventures" index="04" eyebrow="Ventures" title={trackRecord.title}>
+          <VenturesBook coverKicker="04 — Ventures" />
         </Section>
 
-        {/* 04 How I build (brief §2.5): the 4 principles in a bento of live diagrams (restored at the founder's request), then the vision line */}
-        <Section id="principles" index="04" eyebrow="How I build" title={principles.title}>
+        {/* 05 Experience (founder, 2026-11-05): career span chart + roles, each with its own totals */}
+        <ExperienceSection />
+
+        {/* Projects (addendum-02 §2): HIDDEN for now (founder, 2026-11-05, "comment down"). Component and data are kept;
+            to restore, uncomment this, re-add the nav item in portfolio.ts and renumber the sections after it.
+        <ProjectsSection />
+        */}
+
+        {/* 06 How I build (brief §2.5; renumbered): the 4 principles in a bento of live diagrams (restored at the founder's request), then the vision line */}
+        <Section id="principles" index="06" eyebrow="How I build" title={principles.title}>
           <InkOrbitFeatures
             flow={{
               ...principles.diagrams.flow,
@@ -133,7 +151,10 @@ export default function Home() {
           </p>
         </Section>
 
-        {/* 05 Contact (addendum §3 content; footer below unchanged by founder's choice) */}
+        {/* 07 Testimonials (addendum-02 §3): placeholder slots until there are 2+ real, approved quotes. Not in the nav. */}
+        <TestimonialsSection />
+
+        {/* 08 Contact (addendum §3 content; footer below unchanged by founder's choice) */}
         <ContactSection />
         </div>
       </main>
@@ -149,13 +170,13 @@ export default function Home() {
           <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             {site.footerSocials.map((s) => (
               <li key={s.label}>
-                <a href={s.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition hover:text-foreground">
+                <a href={s.href} target="_blank" rel="noopener noreferrer" className="-my-1 inline-flex items-center gap-1 py-1 transition hover:text-foreground">
                   {s.label} <ArrowUpRight size={13} />
                 </a>
               </li>
             ))}
             <li>
-              <a href="#top" className="inline-flex items-center gap-1 transition hover:text-foreground">
+              <a href="#top" className="-my-1 inline-flex items-center gap-1 py-1 transition hover:text-foreground">
                 Back to top <ArrowUp size={13} />
               </a>
             </li>

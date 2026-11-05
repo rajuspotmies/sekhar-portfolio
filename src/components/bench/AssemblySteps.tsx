@@ -155,15 +155,24 @@ export default function AssemblySteps({ steps }: { steps: AssemblyStep[] }) {
       }
     };
 
-    // three.js loads only on the client, after the page is interactive
-    import("./rover").then(({ mountRover }) => {
-      if (cancelled) return;
-      rover = mountRover(stage, { dark: isDark() });
-      layout();
-      measure();
-      p = reading;
-      draw();
-    });
+    // three.js loads only on the client, and only once the reader nears this section (about one screen
+    // away), so it never adds to page-load blocking time (2026-11-05 Lighthouse: it was ~2s of main thread).
+    const near = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        near.disconnect();
+        import("./rover").then(({ mountRover }) => {
+          if (cancelled) return;
+          rover = mountRover(stage, { dark: isDark() });
+          layout();
+          measure();
+          p = reading;
+          draw();
+        });
+      },
+      { rootMargin: "100% 0px" },
+    );
+    near.observe(el);
     const themeWatch = new MutationObserver(() => rover?.theme(isDark()));
     themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     const ro = new ResizeObserver(layout);
@@ -181,6 +190,7 @@ export default function AssemblySteps({ steps }: { steps: AssemblyStep[] }) {
     layout();
     return () => {
       cancelled = true;
+      near.disconnect();
       window.removeEventListener("scroll", kick);
       window.removeEventListener("resize", onResize);
       themeWatch.disconnect();
