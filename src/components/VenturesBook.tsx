@@ -1172,21 +1172,23 @@ export default function VenturesBook({ coverKicker }: { coverKicker: string }) {
             </div>
           </article>
 
-          {/* Page 2: the numbers (Achievements figures, then the company figures from spotmies.com) */}
+          {/* Page 2: the "How it started" photo on top, then the numbers (Achievements figures, then the company
+              figures from spotmies.com) at the bottom (founder, 2026-11-07) */}
           <article data-face="R0" className={"vb-right rounded-2xl lg:rounded-l-none " + pageCls}>
             <span aria-hidden="true" className="vb-head right-6 sm:right-10"><span className="text-accent">02</span> · {S.name}</span>
             <span aria-hidden="true" className="vb-folio right-6 sm:right-10">2</span>
-            <NumberRow title="By the numbers" items={SPOT_NUMBERS} />
-            <Graphs m={S.metrics} kind="spotmies" />
-            {S.support && <p className={body + " text-muted"}>{S.support}</p>}
-            {S.metrics.growth && <GrowthLine g={S.metrics.growth} />}
-            <p className={label}>
-              {S.metrics.scope}
-              {S.metrics.asOf && <> · as of {S.metrics.asOf}</>}
-            </p>
-            {/* full page width (founder, 2026-11-07: the page had empty space) */}
-            <div className="mt-1 px-1">
+            <div className="mt-2 px-1">
               <PagePhoto image={S.officePhoto} wide full tilt={1} />
+            </div>
+            <div className="flex flex-col gap-5 lg:mt-auto">
+              <NumberRow title="By the numbers" items={SPOT_NUMBERS} />
+              <Graphs m={S.metrics} kind="spotmies" />
+              {S.support && <p className={body + " text-muted"}>{S.support}</p>}
+              {S.metrics.growth && <GrowthLine g={S.metrics.growth} />}
+              <p className={label}>
+                {S.metrics.scope}
+                {S.metrics.asOf && <> · as of {S.metrics.asOf}</>}
+              </p>
             </div>
           </article>
 
