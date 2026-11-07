@@ -12,7 +12,7 @@ const meta = (...parts: (string | null)[]): string | null => parts.filter(Boolea
 const spotmiesCofounders: string | null = null; // e.g. "Satish, Hemanth and Naveen" (needs their OK)
 const spotmiesEndYear: string | null = null; // "present" or the year it ended
 const reaidyTitle: string | null = "Co-Founder & CTO"; // founder, 2026-11-06 (LinkedIn says "Co-Founder"); book only, Experience card unchanged
-const reaidyYears: string | null = "Sep 2023 – Apr 2026"; // LinkedIn (founder OK, 2026-11-05)
+const reaidyYears: string | null = "2024 – 2026"; // founder, 2026-11-07 (was "Sep 2023 – Apr 2026" from LinkedIn). Book only; Experience still starts 2023-09
 
 /** Every field currently hidden because it's null (for the founder's fill-in list). */
 export const hiddenUntilFilled = [
@@ -384,6 +384,9 @@ export const trackRecord = {
     // Founder's photo for Spotmies (2026-11-05; replaced the office group shot, kept at /ventures/spotmies-office-team.webp).
     // Group photo from IMG_1666 (founder, 2026-11-06; replaced the team-on-steps photo). New file name: browsers cache by name.
     photo: { src: "/ventures/spotmies-team-2026.webp", alt: "The Spotmies team" } as { src: string; alt: string; wide?: boolean } | null,
+    // Founder's photos (2026-11-07) for the two Spotmies pages that open the book. New file names (browser cache).
+    wallPhoto: { src: "/ventures/spotmies-wall-team.webp", alt: "The team at the Spotmies office" },
+    officePhoto: { src: "/ventures/spotmies-office-selfie.webp", alt: "How it started" }, // caption: founder, 2026-11-07
     // Wording taken from the Spotmies chapter and summary (no new claims).
     chipsLabel: "What we built",
     chips: ["Web", "Mobile", "AI", "Blockchain", "Smart contracts", "NFTs", "dApps"],
@@ -452,11 +455,11 @@ export const timeline = {
   skipLabel: "Skip timeline ↓",
   spreads: [
     {
-      years: "2026 — 2023",
+      years: "2026 — 2024", // founder, 2026-11-07 (was 2026 — 2023)
       title: "Reaidy.io",
       entries: [
         {
-          years: "2026 — 2023", // LinkedIn: Co-Founder, Sep 2023 – Apr 2026
+          years: "2026 — 2024", // founder, 2026-11-07: Reaidy.io is 2024–2026 (LinkedIn said Sep 2023 – Apr 2026)
           title: "Reaidy.io",
           type: "product",
           // Wording approved by the founder (2026-11-05); every fact from his LinkedIn posts / Reaidy's company page (research file).
