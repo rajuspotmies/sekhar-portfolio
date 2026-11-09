@@ -107,12 +107,25 @@ export default function AssemblySteps({ steps }: { steps: AssemblyStep[] }) {
     let shown = -1;
 
     /** Side by side on wide stages: shift the rover right by half the panel's footprint. */
+    // Phones show / hide the address bar while scrolling, which changes the window height by ~50–110px. Centring
+    // on that height made the pinned figure jump mid-scroll, so the height only counts when the width changes or
+    // the height changes a lot (rotation, split screen).
+    let screenW = window.innerWidth;
+    let screenH = window.innerHeight;
+    const stableHeight = () => {
+      if (window.innerWidth !== screenW || Math.abs(window.innerHeight - screenH) > 160) {
+        screenW = window.innerWidth;
+        screenH = window.innerHeight;
+      }
+      return screenH;
+    };
     const layout = () => {
+      const vh = stableHeight();
       // centre the pinned box on screen (never under the navigation bar)
       const minTop = window.innerWidth <= 640 ? 64 : 76;
-      sticky.style.top = `${Math.max(minTop, Math.round((window.innerHeight - sticky.offsetHeight) / 2))}px`;
+      sticky.style.top = `${Math.max(minTop, Math.round((vh - sticky.offsetHeight) / 2))}px`;
       // also side by side on short landscape screens (phones turned sideways): stacked, the panel would sit off screen
-      const shortLandscape = window.innerHeight <= 520 && window.innerWidth > window.innerHeight && viewport.clientWidth >= 600;
+      const shortLandscape = vh <= 520 && window.innerWidth > vh && viewport.clientWidth >= 600;
       const side = viewport.clientWidth >= SIDE_BY_SIDE || shortLandscape;
       viewport.toggleAttribute("data-side", side);
       rover?.shift(side ? (panel.offsetWidth + 48) / 2 : 0);

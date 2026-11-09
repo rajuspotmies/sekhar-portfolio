@@ -599,10 +599,16 @@ function EntryPage({ pg, id, tilt }: { pg: TLPage; id?: string; tilt: number }) 
 }
 
 /* One entry over both pages. Left: years, type, title, role, line, photo. Right: the work and the outcome. */
-function SoloLeft({ pg, id, extra }: { pg: TLPage; id: string; extra?: React.ReactNode }) {
+function SoloLeft({ pg, id, extra, logo }: { pg: TLPage; id: string; extra?: React.ReactNode; logo?: { src: string; width: number; height: number; alt: string } }) {
   return (
     <div className="flex w-full flex-col gap-4">
-      {pg.years && <p className="font-serif text-5xl leading-none sm:text-6xl">{pg.years}</p>}
+      {/* the company's logo on the same row as the years, so the page gets no taller (founder, 2026-11-09) */}
+      {(pg.years || logo) && (
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+          {pg.years && <p className="font-serif text-5xl leading-none sm:text-6xl">{pg.years}</p>}
+          {logo && <LogoPlate logo={logo} h={19} />}
+        </div>
+      )}
       {pg.type && <p className={label}>{pg.type}</p>}
       <EntryTitle pg={pg} id={id} big />
       {pg.role && <p className={label}>{pg.role}</p>}
@@ -1214,6 +1220,7 @@ export default function VenturesBook({ coverKicker }: { coverKicker: string }) {
                     <SoloLeft
                       pg={sp.entries[0]}
                       id={`vb-tl-${n}`}
+                      logo={isReaidy(sp) ? R.logo : undefined}
                       // Reaidy's figures (from the old overview page). Its "The product" chips are left out: they repeat
                       // the line above, and with them the page didn't fit.
                       extra={isReaidy(sp) ? (

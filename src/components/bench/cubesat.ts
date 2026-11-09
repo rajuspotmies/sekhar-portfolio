@@ -761,6 +761,10 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
   const root = new THREE.Group();
   scene.add(root);
   const small = Math.min(window.innerWidth, window.innerHeight) < 700;
+  // phones and tablets: no real-time shadow pass, two lights fewer, ambient motion at 30 fps
+  const lite = small || window.matchMedia("(pointer: coarse)").matches;
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const lowEnd = lite && ((nav.hardwareConcurrency || 8) <= 4 || (nav.deviceMemory ?? 8) <= 4);
 
   /* ---- the tree plane: faces the camera's horizontal direction (R right, U up, N toward the viewer) ---- */
   const viewDir = new THREE.Vector3(1.0, 0.55, 1.12).normalize();
@@ -992,6 +996,48 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
   });
   const itemById = new Map(items.map((i) => [i.spec.id, i]));
 
+  /* ---- the finished body, baked: once every part has landed, the static pieces are drawn as ONE merged mesh per
+     material (about a dozen draw calls instead of ~110), so the hovering satellite stays light on phones. The
+     deploying wings and tape antennas stay separate pieces. ---- */
+  const baked = new THREE.Group();
+  baked.visible = false;
+  root.add(baked);
+  const bakedEdgeMat = new THREE.LineBasicMaterial({ color: 0x57534e, transparent: true, opacity: 0.5 });
+  const staticPieces = pieces.filter((pc) => !pc.spec.deploy);
+  {
+    const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>();
+    const lines: THREE.BufferGeometry[] = [];
+    const mtx = new THREE.Matrix4();
+    const one = new THREE.Vector3(1, 1, 1);
+    for (const pc of staticPieces) {
+      mtx.compose(pc.home, pc.homeQ, one); // the piece's meshes sit at identity inside its group
+      pc.obj.traverse((o) => {
+        if (o === pc.obj || o === pc.inner) return;
+        const geo = (o as THREE.Mesh).geometry;
+        if (!geo) return;
+        const g = geo.clone().applyMatrix4(mtx);
+        if ((o as THREE.LineSegments).isLineSegments) lines.push(g);
+        else {
+          const mat = (o as THREE.Mesh).material as THREE.Material;
+          if (!byMat.has(mat)) byMat.set(mat, []);
+          byMat.get(mat)!.push(g);
+        }
+      });
+    }
+    for (const [mat, list] of byMat) {
+      const g = mergeGeometries(list, false);
+      list.forEach((x) => x.dispose());
+      if (!g) continue;
+      const mesh = new THREE.Mesh(g, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      baked.add(mesh);
+    }
+    const eg = mergeGeometries(lines, false);
+    lines.forEach((x) => x.dispose());
+    if (eg) baked.add(new THREE.LineSegments(eg, bakedEdgeMat));
+  }
+
   // each item's tree display: tilted toward the viewer, scaled to fit its cell; several pieces sit side by side
   {
     const box3 = new THREE.Box3();
@@ -1123,7 +1169,7 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
   scene.add(hemi);
   const key = new THREE.DirectionalLight(0xffffff, 2.3);
   key.position.set(4, 9, 5);
-  key.castShadow = true;
+  key.castShadow = !lite;
   key.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
   Object.assign(key.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8, far: 30 });
   key.shadow.bias = -0.0004;
@@ -1131,21 +1177,41 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
   scene.add(key);
   const fill = new THREE.DirectionalLight(0xfff4e8, 0.55);
   fill.position.set(-5, 3, 6);
-  scene.add(fill);
+  if (!lite) scene.add(fill);
   const rim = new THREE.DirectionalLight(0xdfe3ff, 0.9);
   rim.position.set(-6, 5, -6);
-  scene.add(rim);
+  if (!lite) scene.add(rim);
   // the invisible floor: draws nothing but the soft shadow, so the satellite (and the cloud) sit on the page
   const floorMat = new THREE.ShadowMaterial({ opacity: 0.16, depthWrite: false });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
+  floor.visible = !lite;
   root.add(floor);
+  // phones: a soft contact-shadow blob under the satellite instead of a shadow map (one cheap draw, no extra pass)
+  const blobTex = (() => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 128;
+    const g = c.getContext("2d")!;
+    const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    grad.addColorStop(0, "rgba(0,0,0,1)");
+    grad.addColorStop(0.45, "rgba(0,0,0,0.55)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  })();
+  const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, color: 0x000000, transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), blobMat);
+  blob.rotation.x = -Math.PI / 2;
+  blob.position.y = 0.003;
+  blob.visible = false;
+  root.add(blob);
 
   if (process.env.NODE_ENV !== "production") (window as unknown as { __satScene?: THREE.Scene }).__satScene = scene;
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 1.75));
-  renderer.shadowMap.enabled = true;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lowEnd ? 1.25 : lite ? 1.5 : 1.75));
+  renderer.shadowMap.enabled = !lite;
   renderer.shadowMap.type = small ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -1225,6 +1291,7 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
       }
     }
     for (const p of pieces) if (p.obj.visible) take(p.obj);
+    if (baked.visible) take(baked);
     if (orbit.visible) take(orbitLine);
     root.rotation.y = keep;
     root.updateMatrixWorld(true);
@@ -1253,6 +1320,15 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
     return { centre: new THREE.Vector3().addScaledVector(camRight, cx).addScaledVector(camUp, cy), dist };
   };
   let F = { centre: new THREE.Vector3(0, 2, 0), dist: 20 };
+  type Fit = typeof F;
+  /**
+   * Steps 6–7 use two fixed framings instead of fitting the moving parts every frame (that made the camera pump:
+   * it zoomed right in when the last parts landed and the tree folded away, then out again for the wings and the
+   * orbit ring). `tree` = the finished tree of step 5, `fin` = the deployed satellite in orbit (step 7).
+   * Recomputed on resize / panel shift.
+   */
+  let keyFits: { tree: Fit; fin: Fit } | null = null;
+  const fillAt = (at: number) => (w < 640 ? 0.94 : 0.9) - 0.04 * smooth((at - 5) / 2);
   const placeCamera = () => {
     target.copy(F.centre).applyAxisAngle(U, root.rotation.y);
     camera.position.copy(target).addScaledVector(viewDir, F.dist);
@@ -1261,6 +1337,11 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
 
   /* ---- state ---- */
   const still = window.matchMedia("(prefers-reduced-motion: reduce)");
+  // Ambient motion (cloud drift, hover bob, sway, orbit dot, blinking light) is optional polish. Low-end phones
+  // skip it from the start; any other phone drops it for the visit if it can't hold ~22 fps while it runs.
+  // Everything scroll-driven still plays in full.
+  let ambientOff = lowEnd;
+  const calm = () => still.matches || ambientOff;
   let progress = -1;
   let u = 0; // progress × 7: which state, and how far into it
   let isDark = dark;
@@ -1289,7 +1370,7 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
   /** The yaw the model should have: still while the tree reads, a slow turn while it assembles. */
   const yawTarget = (now: number) => {
     const scroll = u < 3 ? -0.28 * (1 - ease(u / 3)) : u < 5 ? 0 : 0.42 * ease(clamp01((u - 5) / 1.6));
-    const sway = u >= 6.72 && !still.matches ? 0.24 * Math.sin(now / 3200) : 0;
+    const sway = u >= 6.72 && !calm() ? 0.24 * Math.sin(now / 3200) : 0;
     return scroll + dragYaw + sway;
   };
 
@@ -1302,15 +1383,78 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
   const eTmp = new THREE.Euler();
   const deployAxis = new THREE.Vector3(0, 1, 0);
 
+  /* state 7: the finished satellite lifts off, banks slightly and hovers; an orbit ring draws around it.
+     `movers` = the pieces to carry with it (all of them during a full update; only the deployables while hovering). */
+  const stage7 = (now: number, bl: number, movers: PieceRT[]) => {
+    const lift = ease(clamp01((bl - 0.05) / 0.7));
+    const bob = calm() ? 0 : Math.sin(now / 1500) * 0.055 * lift;
+    const rise = LIFT * lift + bob;
+    if (lift <= 0) qRig.identity();
+    if (lift > 0) {
+      qRig.slerpQuaternions(qOne, tiltQ, lift);
+      if (!calm()) qRig.multiply(qb.setFromAxisAngle(R, Math.sin(now / 2100) * 0.025 * lift));
+      for (const p of movers) {
+        p.obj.position.sub(PIVOT).applyQuaternion(qRig).add(PIVOT);
+        p.obj.position.y += rise;
+        p.obj.quaternion.premultiply(qRig);
+      }
+    }
+    baked.quaternion.copy(qRig);
+    baked.position.copy(PIVOT).sub(v1.copy(PIVOT).applyQuaternion(qRig));
+    baked.position.y += lift > 0 ? rise : 0;
+    led.visible = lift > 0.3;
+    if (led.visible) {
+      led.position.copy(LED_AT).sub(PIVOT).applyQuaternion(qRig).add(PIVOT);
+      led.position.y += rise;
+      const blink = calm() ? 1 : 0.35 + 0.65 * Math.pow(Math.max(0, Math.sin(now / 420)), 6);
+      ledMat.opacity = smooth((lift - 0.3) / 0.3) * blink;
+      (ledHalo.material as THREE.SpriteMaterial).opacity = ledMat.opacity * 0.8;
+    }
+    const ring = ease(clamp01((bl - 0.2) / 0.6));
+    orbit.visible = ring > 0.001;
+    if (orbit.visible) {
+      orbit.position.copy(PIVOT);
+      orbit.position.y += LIFT * lift - 0.15;
+      orbit.scale.setScalar(0.55 + 0.45 * ring);
+      orbitGeo.setDrawRange(0, Math.max(2, Math.ceil((ORBIT_N + 1) * ring)));
+      orbitMat.opacity = 0.6 * ring;
+      const at = calm() ? 0.9 : now / 2600;
+      dot.position.set(Math.cos(at) * ORBIT_R, 0, Math.sin(at) * ORBIT_R);
+      dotMat.opacity = smooth((ring - 0.7) / 0.3);
+      (dotHalo.material as THREE.SpriteMaterial).opacity = dotMat.opacity * 0.7;
+    }
+    return lift;
+  };
+  const deployables = pieces.filter((pc) => pc.spec.deploy);
+  /** Hover frames once built: only the satellite, its light and the orbit dot move; nothing else is recomputed. */
+  const hover = (now: number) => {
+    for (const pc of deployables) {
+      pc.obj.position.copy(pc.home);
+      pc.obj.quaternion.copy(pc.homeQ);
+    }
+    stage7(now, 1, deployables);
+    dirty = true;
+  };
   const asmGlow = new Map<string, number>();
   const update = (now: number, refit: boolean) => {
+    if (refit && u > 5 && !keyFits) {
+      const keep = u;
+      u = 4.999;
+      update(now, false);
+      const tree = fitNow(fillAt(u));
+      u = 7;
+      update(now, false);
+      const fin = fitNow(fillAt(u));
+      u = keep;
+      keyFits = { tree, fin };
+    }
     const c = S(1, 0, 0.6); // connected
     const t = S(2, 0, 0.7); // structured
     const m = S(3, 0, 0.6); // real parts
     const r = S(4, 0, 0.9); // change impact
     const a = S(5, 0, 0.88); // assembled
     const bl = S(6, 0, 0.72); // built
-    const drift = still.matches ? 0 : 1 - smooth(t * 1.4);
+    const drift = calm() ? 0 : 1 - smooth(t * 1.4);
     const pull = 0.22 * smooth(c);
     const lineFade = 1 - smooth(a * 1.8);
     const SPAN = 0.36; // each part's flight overlaps its neighbours: a steady, readable build
@@ -1350,8 +1494,8 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
         // state 6: the tag folds away as its part leaves
         scale *= 1 - smooth(it.fly / 0.22);
       }
-      if (s.kind === "asm") scale *= 1 - smooth((a - 0.5) / 0.3);
-      if (s.kind === "top") scale *= 1 - smooth((a - 0.62) / 0.3);
+      if (s.kind === "asm") scale *= 1 - smooth((a - 0.38) / 0.24);
+      if (s.kind === "top") scale *= 1 - smooth((a - 0.46) / 0.24);
       // state 5: the changed revision pops in
       if (s.id === changed.id) {
         scale *= 1 + 0.22 * Math.sin(Math.PI * clamp01((r - 0.03) / 0.14));
@@ -1377,7 +1521,9 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
       const cell = v3.copy(it.tile.treePos).addScaledVector(U, 0.1);
       const fly = it.fly;
       it.pieces.forEach((p, j) => {
-        const k = ease(clamp01(fly * 1.08 - j * 0.03));
+        const n = it.pieces.length;
+        const st = n > 1 ? Math.min(0.03, 0.3 / n) : 0; // small stagger between pieces of one item (16 screws, 4 rails…)
+        const k = ease(clamp01((fly - j * st) / (1 - (n - 1) * st)));
         // tree pose: cell + grid slot + treeQ · (treeS · (home − piece centre))
         v1.copy(p.home).sub(p.centre).applyQuaternion(it.treeQ).multiplyScalar(it.treeS * grow).add(cell).addScaledVector(p.grid, grow);
         qa.copy(it.treeQ).multiply(p.homeQ);
@@ -1412,40 +1558,16 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
       });
     }
 
-    /* state 7: the finished satellite lifts off, banks slightly and hovers; an orbit ring draws around it */
-    const lift = ease(clamp01((bl - 0.05) / 0.7));
-    const bob = still.matches ? 0 : Math.sin(now / 1500) * 0.055 * lift;
-    const rise = LIFT * lift + bob;
-    if (lift > 0) {
-      qRig.slerpQuaternions(qOne, tiltQ, lift);
-      if (!still.matches) qRig.multiply(qb.setFromAxisAngle(R, Math.sin(now / 2100) * 0.025 * lift));
-      for (const p of pieces) {
-        p.obj.position.sub(PIVOT).applyQuaternion(qRig).add(PIVOT);
-        p.obj.position.y += rise;
-        p.obj.quaternion.premultiply(qRig);
+    // every part has landed: draw the static body as the baked mesh
+    const seated = items.every((it) => it.fly >= 1);
+    baked.visible = seated;
+    if (seated)
+      for (const pc of staticPieces) {
+        pc.obj.visible = false;
+        pc.guide.visible = false;
       }
-    }
-    led.visible = lift > 0.3;
-    if (led.visible) {
-      led.position.copy(LED_AT).sub(PIVOT).applyQuaternion(qRig).add(PIVOT);
-      led.position.y += rise;
-      const blink = still.matches ? 1 : 0.35 + 0.65 * Math.pow(Math.max(0, Math.sin(now / 420)), 6);
-      ledMat.opacity = smooth((lift - 0.3) / 0.3) * blink;
-      (ledHalo.material as THREE.SpriteMaterial).opacity = ledMat.opacity * 0.8;
-    }
-    const ring = ease(clamp01((bl - 0.2) / 0.6));
-    orbit.visible = ring > 0.001;
-    if (orbit.visible) {
-      orbit.position.copy(PIVOT);
-      orbit.position.y += LIFT * lift - 0.15;
-      orbit.scale.setScalar(0.55 + 0.45 * ring);
-      orbitGeo.setDrawRange(0, Math.max(2, Math.ceil((ORBIT_N + 1) * ring)));
-      orbitMat.opacity = 0.6 * ring;
-      const at = still.matches ? 0.9 : now / 2600;
-      dot.position.set(Math.cos(at) * ORBIT_R, 0, Math.sin(at) * ORBIT_R);
-      dotMat.opacity = smooth((ring - 0.7) / 0.3);
-      (dotHalo.material as THREE.SpriteMaterial).opacity = dotMat.opacity * 0.7;
-    }
+
+    const lift = stage7(now, bl, pieces);
 
     /* relation lines: straight in the cloud, elbowed in the tree */
     let vi = 0;
@@ -1608,10 +1730,25 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
     const shade = 0.75 + (0.12 - 0.75) * smooth(t) + (1 - 0.12) * smooth(a * 1.5);
     // higher off the floor = a fainter shadow
     floorMat.opacity = (isDark ? 0.34 : 0.16) * Math.min(1, shade) * (1 - 0.45 * lift);
+    if (lite) {
+      const bo = (isDark ? 0.5 : 0.22) * smooth(a * 1.4) * (1 - 0.4 * lift);
+      blob.visible = bo > 0.005;
+      blobMat.opacity = bo;
+      blob.scale.set(2.3 + 1.2 * lift, 2.0 + 0.6 * lift, 1);
+    }
     labelRise = LIFT * lift;
 
     if (refit) {
-      F = fitNow((w < 640 ? 0.94 : 0.9) - 0.04 * smooth((u - 5) / 2));
+      if (u <= 5 || !keyFits) F = fitNow(fillAt(u));
+      else {
+        // hold the tree framing while its cards fold away, then one smooth glide to the finished satellite
+        // (the last parts land during the glide); step 7 holds it
+        const k = smooth((u - 5.4) / 0.55);
+        F = {
+          centre: keyFits.tree.centre.clone().lerp(keyFits.fin.centre, k),
+          dist: keyFits.tree.dist + (keyFits.fin.dist - keyFits.tree.dist) * k,
+        };
+      }
       camera.updateProjectionMatrix();
     }
     dirty = true;
@@ -1659,13 +1796,35 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
     pin(label, labelAlpha);
   };
 
-  const drifting = () => !still.matches && u < 2.75;
-  const showcase = () => !still.matches && u >= 6.72;
+  const drifting = () => !calm() && u < 2.75;
+  const showcase = () => !calm() && u >= 6.72;
   const loop = (now: number) => {
     raf = 0;
-    const dt = last ? Math.min((now - last) / 1000, 1 / 30) : 1 / 60;
+    const ambient = drifting() || showcase();
+    // watch the real frame rate while ambient motion runs on a phone; too slow → switch it off for the visit
+    if (lite && ambient && lastFrameAt) {
+      const gap = now - lastFrameAt;
+      if (gap < 250) {
+        frameEma = frameEma ? frameEma * 0.92 + gap * 0.08 : gap;
+        if (++ambientFrames > 45 && frameEma > 45) {
+          ambientOff = true;
+          update(now, false);
+        }
+      }
+    }
+    lastFrameAt = now;
+    // phones: ambient motion (cloud drift, hover, orbit dot) at ~30 fps; scroll and drag stay at full rate
+    if (lite && ambient && !dirty && now - lastAmbient < 30) {
+      if (visible) raf = requestAnimationFrame(loop);
+      return;
+    }
+    const dt = last ? Math.min((now - last) / 1000, 1 / 20) : 1 / 60;
     last = now;
-    if (drifting() || showcase()) update(now, false);
+    if (ambient) {
+      lastAmbient = now;
+      if (showcase()) hover(now);
+      else update(now, false);
+    }
     const want = yawTarget(now);
     const next = still.matches ? want : yaw + (want - yaw) * (1 - Math.exp(-dt / 0.35));
     const turning = Math.abs(next - yaw) > 1e-5;
@@ -1678,8 +1837,15 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
       placeLabel();
     }
     if (visible && (showcase() || drifting() || Math.abs(want - yaw) > 1e-4 || dirty)) raf = requestAnimationFrame(loop);
-    else last = 0;
+    else {
+      last = 0;
+      lastFrameAt = 0;
+    }
   };
+  let lastAmbient = 0;
+  let lastFrameAt = 0;
+  let frameEma = 0;
+  let ambientFrames = 0;
   const request = () => {
     dirty = true;
     if (!raf && visible) raf = requestAnimationFrame(loop);
@@ -1700,8 +1866,10 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
     (dotHalo.material as THREE.SpriteMaterial).color.copy(accent);
     (ledHalo.material as THREE.SpriteMaterial).color.copy(accent);
     tileBodyMat.color.set(isDark ? 0xc9c5bf : 0xf4f2ee);
+    bakedEdgeMat.color.copy(edgeIdle);
+    bakedEdgeMat.opacity = isDark ? 0.42 : 0.5;
     pieces.forEach((p) => p.guideMat.color.set(isDark ? 0x8a8480 : 0x78716c));
-    hemi.intensity = isDark ? 0.75 : 0.95;
+    hemi.intensity = (isDark ? 0.75 : 0.95) + (lite ? 0.25 : 0); // makes up for the two lights phones skip
     update(performance.now(), false);
     request();
   };
@@ -1771,6 +1939,7 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
     labelSize.delete(callout);
     camera.aspect = w / h;
     fitAspect = Math.max(0.6, (w - shiftPx * 2) / h);
+    keyFits = null;
     if (shiftPx > 0) camera.setViewOffset(w, h, -shiftPx, 0, w, h);
     else camera.clearViewOffset();
     update(performance.now(), true);
@@ -1788,7 +1957,7 @@ export function mountCubesat(host: HTMLElement, { dark }: { dark: boolean }): Sc
   resize();
 
   // development only: drive the scene from the console / headless checks
-  if (process.env.NODE_ENV !== "production") (window as unknown as { __sat?: unknown }).__sat = { set: (p: number) => { progress = p; go(); }, items, tiles, renderer, scene, state: () => ({ progress, u, visible, raf }), frame: () => { update(performance.now(), true); renderer.render(scene, camera); return { lost: renderer.getContext().isContextLost(), calls: renderer.info.render.calls }; } };
+  if (process.env.NODE_ENV !== "production") (window as unknown as { __sat?: unknown }).__sat = { set: (p: number) => { progress = p; go(); }, items, tiles, renderer, scene, state: () => ({ progress, u, visible, raf, dist: F.dist, ambientOff, lowEnd, lite }), frame: () => { update(performance.now(), true); renderer.render(scene, camera); return { lost: renderer.getContext().isContextLost(), calls: renderer.info.render.calls }; } };
 
   return {
     set(p: number) {
